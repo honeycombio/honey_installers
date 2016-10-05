@@ -135,7 +135,10 @@ https://honeycomb.io/docs/send-data/agent/""".format(installer_name=self.install
                 sys.exit(1)
 
             resp.raw.decode_content = True
-            shutil.copyfileobj(resp.raw, fb)
+            chunk_size=16384
+            with click.progressbar(resp.iter_content(chunk_size)) as bar:
+                for chunk in bar:
+                    fb.write(chunk)
 
         if HONEYTAIL_CHECKSUM:
             click.echo("Verifying the download.")
