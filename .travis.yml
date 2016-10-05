@@ -1,0 +1,20 @@
+os:
+  - linux
+  #- osx
+
+language: python
+addons:
+    artifacts:
+        debug: true
+        paths:
+        - dist/
+python:
+    - '2.7'
+install:
+    - pip install -r requirements.txt
+    - echo "version = '1.$TRAVIS_BUILD_NUMBER'" > honey_installer/honey_installer_version.py
+    - pyinstaller mongo_installer/mongo_installer.spec
+    - pyinstaller mysql_installer/mysql_installer.spec
+    - pyinstaller nginx_installer/nginx_installer.spec
+
+script: cd test && ./smoke-test.sh 1.$TRAVIS_BUILD_NUMBER

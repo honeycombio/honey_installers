@@ -1,0 +1,13 @@
+.Python
+bin/
+include/
+lib/
+pip-selfcheck.json
+build/
+dist/
+*.pyc
+*.state
+*~
+honeytail
+honeytail.linux
+honeytail.darwin
