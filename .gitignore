@@ -5,3 +5,5 @@ lib/
 pip-selfcheck.json
 build/
 dist/
+*.pyc
+*.state
