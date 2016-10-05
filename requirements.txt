@@ -1,0 +1,6 @@
+pyinstaller==3.2
+click==6.6
+requests==2.11.1
+semver==2.6.0
+pyyaml==3.10
+ansicolors==1.0.2
