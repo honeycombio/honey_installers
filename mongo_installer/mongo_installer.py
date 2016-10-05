@@ -8,7 +8,10 @@ import semver
 import subprocess
 import sys
 import yaml
-from installer import (HoneyInstaller, bold, get_choice, get_version)
+
+sys.path.append(os.path.abspath(os.path.join(os.path.basename(__file__), "..")))
+
+from honey_installer import (HoneyInstaller, bold, get_choice, get_version)
 
 INSTALLER_NAME = "mongo"
 INSTALLER_VERSION = get_version() + "-" + platform.system().lower()

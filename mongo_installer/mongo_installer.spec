@@ -3,7 +3,7 @@
 block_cipher = None
 
 
-a = Analysis(['mongo_installer.py'],
+a = Analysis(['mongo_installer.py', '../honey_installer/installer.py'],
              binaries=None,
              datas=None,
              hiddenimports=[],
