@@ -125,9 +125,9 @@ class HoneyInstaller(object):
     def fetch_honeytail(self):
         # Mac doesn't ship with wget, we could use curl
         if not HONEYTAIL_URL:
-            click.echo("""Sorry, only Linux is supported for {installer_name} auto configuration.
+            click.echo("""Sorry, {installer_name} auto configuration is not supported for {platform}.
 Please see the docs or ask for further assistance.
-https://honeycomb.io/docs/send-data/agent/""".format(installer_name=self.installer_name))
+https://honeycomb.io/docs/send-data/agent/""".format(installer_name=self.installer_name, platform=platform.system()))
             sys.exit(1)
 
         dest = "./honeytail"
