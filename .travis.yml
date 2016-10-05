@@ -16,4 +16,4 @@ install:
     - pyinstaller mongo_installer/mongo_installer.spec
     - pyinstaller nginx_installer/nginx_installer.spec
 
-script: cd test && smoke-test.sh 1.$TRAVIS_BUILD_NUMBER
+script: cd test && ./smoke-test.sh 1.$TRAVIS_BUILD_NUMBER
