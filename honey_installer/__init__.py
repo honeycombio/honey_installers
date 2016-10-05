@@ -1,1 +1,1 @@
-from installer import (HoneyInstaller, bold, get_choice, get_version)
+from installer import (HoneyInstaller, get_choice, get_version)
