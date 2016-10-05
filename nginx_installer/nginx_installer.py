@@ -5,13 +5,14 @@ from nginxparser import NginxParser
 
 import click
 import os.path
+import platform
 import pprint
 import semver
 import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.basename(__file__), "..")))
 
-from honey_installer import (HoneyInstaller, bold, get_version)
+from honey_installer import (HoneyInstaller, get_version)
 
 INSTALLER_NAME = "nginx"
 INSTALLER_VERSION = get_version() + "-" + platform.system().lower()

@@ -15,4 +15,5 @@ install:
     - echo "version = '1.$TRAVIS_BUILD_NUMBER'" > honey_installer/honey_installer_version.py
     - pyinstaller mongo_installer/mongo_installer.spec
     - pyinstaller nginx_installer/nginx_installer.spec
-script: true
+
+script: cd test && smoke-test.sh 1.$TRAVIS_BUILD_NUMBER
