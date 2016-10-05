@@ -11,7 +11,7 @@ import yaml
 
 sys.path.append(os.path.abspath(os.path.join(os.path.basename(__file__), "..")))
 
-from honey_installer import (HoneyInstaller, bold, get_choice, get_version)
+from honey_installer import (HoneyInstaller, get_choice, get_version)
 
 INSTALLER_NAME = "mongo"
 INSTALLER_VERSION = get_version() + "-" + platform.system().lower()
@@ -37,12 +37,12 @@ def _check_mongo_version():
     p = subprocess.Popen(["mongod", "--version"], stdout=subprocess.PIPE)
     full_verstring = p.communicate()
     if p.returncode != 0:
-        click.echo(bold("... failed to determine the version of mongod you're running."))
+        click.secho("... failed to determine the version of mongod you're running.", bold=True)
         click.echo("Checking the mongo client version instead.")
         p = subprocess.Popen(["mongo", "--version"], stdout=subprocess.PIPE)
         full_verstring = p.communicate()
         if p.returncode != 0:
-            click.echo(bold("... unable to determine mongo version."))
+            click.secho("... unable to determine mongo version.", bold=True)
             click.echo("""Sorry, but we still couldn't connect to a local mongo.
 This installer only works on the machine running mongo.
 Bailing out.""")
@@ -70,7 +70,7 @@ that you upgrade mongo.
 def _check_mongo_connection():
     """Tries to connect to local mongo.
     If it fails, asks for mongo connection creds"""
-    click.echo(bold("... connecting to local mongo to check logging levels"))
+    click.secho("... connecting to local mongo to check logging levels", bold=True)
     # connect to mongo
     p = subprocess.Popen(["mongo", "--quiet"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     # ask for a list of databases
@@ -80,7 +80,7 @@ def _check_mongo_connection():
     password = ""
     auth_db = ""
     if p.returncode != 0:
-        click.echo(bold("... failed to connect to mongo on localhost with no username or password."))
+        click.secho("... failed to connect to mongo on localhost with no username or password.", bold=True)
         click.echo()
         
     while p.returncode != 0:
@@ -102,7 +102,7 @@ def _check_mongo_connection():
             break
         
         click.echo()
-        click.echo(bold("... failed to connect to mongo on localhost with supplied username or password."))
+        click.secho("... failed to connect to mongo on localhost with supplied username or password.", bold=True)
         click.echo()
 
     return (username, password, auth_db)
@@ -172,11 +172,11 @@ def _check_and_fix_mongo_logging_level(username, password, auth_db, version):
         if click.confirm("Would you like us to enable full query logging on these databases?", default=True):
             click.echo()
             for db in dbs_to_change:
-                click.echo(bold("... running db.setProfilingLevel(2, -1) on {} database to enable full logging...".format(db)))
+                click.secho("... running db.setProfilingLevel(2, -1) on {} database to enable full logging...".format(db), bold=True)
                 p = subprocess.Popen(_auth_mongo_cmd(["mongo", db, "--quiet"], username, password, auth_db),
                                      stdin=subprocess.PIPE, stdout=subprocess.PIPE)
                 log_level = p.communicate("db.setProfilingLevel(2, -1)")
-            click.echo(bold("... done."))
+            click.secho("... done.", bold=True)
             click.echo()
         click.echo("To permanently enact this change, add the following to your mongo config file:")
         # TODO verify this is correct

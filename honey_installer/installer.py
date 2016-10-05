@@ -1,5 +1,4 @@
 import click
-import colors
 from distutils.version import StrictVersion
 import hashlib
 import logging
@@ -20,15 +19,6 @@ def get_version():
     except:
         return "dev"
         
-use_color = None
-def bold(str):
-    global use_color
-    if use_color is None:
-        use_color = hasattr(sys.stdout, 'isatty') and sys.stdout.isatty()
-    if use_color:
-        return colors.bold(str)
-    return str
-    
 BACKFILL_AND_TAIL = 1
 ONLY_TAIL = 2
 SHOW_COMMANDS = 3
@@ -90,10 +80,10 @@ class HoneyInstaller(object):
         if not os.path.isfile(self.honeytail_loc):
             if self.honeytail_loc == "honeytail":
                 # the default location
-                click.echo(bold("... couldn't find honeytail, downloading version %s" % HONEYTAIL_VERSION))
+                click.secho("... couldn't find honeytail, downloading version %s" % HONEYTAIL_VERSION, bold=True)
             else:
                 # the user specified a location, so let's tell them we couldn't find it there
-                click.echo(bold("... couldn't find honeytail at %s, downloading version %s to ./honeytail" % (self.honeytail_loc, HONEYTAIL_VERSION)))
+                click.secho("... couldn't find honeytail at %s, downloading version %s to ./honeytail" % (self.honeytail_loc, HONEYTAIL_VERSION), bold=True)
 
             self.honeytail_loc = self.fetch_honeytail()
             return
@@ -101,14 +91,14 @@ class HoneyInstaller(object):
         existing_version, existing_newer = self.check_honeytail_version()
         if not existing_newer:
             if self.honeytail_loc != "honeytail":
-                click.echo(bold("... honeytail version at %s is too old (%s), downloading new version (%s) to ./honeytail." % (self.honeytail_loc, existing_version, HONEYTAIL_VERSION)))
+                click.secho("... honeytail version at %s is too old (%s), downloading new version (%s) to ./honeytail." % (self.honeytail_loc, existing_version, HONEYTAIL_VERSION), bold=True)
             else:
-                click.echo(bold("... honeytail version is too old (%s), downloading new version (%s)." % (existing_version, HONEYTAIL_VERSION)))
+                click.secho("... honeytail version is too old (%s), downloading new version (%s)." % (existing_version, HONEYTAIL_VERSION), bold=True)
 
             self.honeytail_loc = self.fetch_honeytail()
             return
 
-        click.echo(bold("... found existing honeytail binary."))
+        click.secho("... found existing honeytail binary.", bold=True)
         click.echo()
 
 
@@ -236,10 +226,10 @@ It can also backfill existing logs, which can get you started with more data in 
 
     def print_lines(self, lines):
         click.echo()
-        click.echo(bold("  {} \\".format(lines[0])))
+        click.secho("  {} \\".format(lines[0]), bold=True)
         for x in lines[1:-1]:
-            click.echo(bold("    {} \\".format(x)))
-        click.echo(bold("    {}".format(lines[-1])))
+            click.secho("    {} \\".format(x), bold=True)
+        click.secho("    {}".format(lines[-1]), bold=True)
 
         
     def get_tail_lines(self, log_file):
@@ -288,9 +278,9 @@ rotated log files in order to backfill more data. You can run the command at any
         estimate = estimate_ingest_time(file_size, "take")
         if estimate != "":
             estimate = "- " + estimate
-        click.echo(bold("... Backfilling from {log_file} {estimate}".format(log_file=self.log_file, estimate=estimate)))
+        click.secho("... Backfilling from {log_file} {estimate}".format(log_file=self.log_file, estimate=estimate), bold=True)
         subprocess.call(backfill_command, shell=True)
-        click.echo(bold("... Done backfilling from {log_file}".format(log_file=self.log_file)))
+        click.secho("... Done backfilling from {log_file}".format(log_file=self.log_file), bold=True)
         click.echo()
 
 
@@ -317,7 +307,7 @@ You can interrupt the installer at any point and run the above honeytail command
 or add it to system startup scripts.
 """)
 
-        click.echo(bold("... Sending new data from {log_file}".format(log_file=self.log_file)))
+        click.secho("... Sending new data from {log_file}".format(log_file=self.log_file), bold=True)
         subprocess.call(command, shell=True)
 
 
@@ -335,7 +325,8 @@ or add it to system startup scripts.
         self.print_lines(backfill_lines)
 
         click.echo()
-        click.echo(bold("NOTE:") + " if you want to backfill and send real-time events from the same file, backfill first.")
+        click.echo("NOTE: if you want to backfill and send real-time events from the same file, backfill first.")
+        click.echo()
 
 
     def hook(self):
@@ -379,7 +370,7 @@ We're going to attempt to autoconfigure honeytail for your {installer_name} inst
         while not self.log_file:
             self.log_file = self.prompt_for_log_file()
 
-        click.echo(bold("... found log file at {log_file}".format(log_file=self.log_file)))
+        click.secho("... found log file at {log_file}".format(log_file=self.log_file), bold=True)
         
         mode, file_size = self.prompt_for_run_mode()
 
