@@ -387,7 +387,7 @@ Congratulations! You've set up honeytail to ingest your {installer_name} logs. T
 a query against your new {installer_name} data:
 
     https://ui.honeycomb.io/{team_slug}/datasets/{dataset}
-""".format(installer_name=self.installer_name, team_slug=self.team_slug, dataset=urllib.quote(self.dataset)))
+""".format(installer_name=self.installer_name, team_slug=self.team_slug, dataset=urllib.quote(self.dataset.lower())))
         
         if mode == BACKFILL_AND_TAIL:
             self.backfill(file_size)
