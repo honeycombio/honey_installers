@@ -23,15 +23,15 @@ BACKFILL_AND_TAIL = 1
 ONLY_TAIL = 2
 SHOW_COMMANDS = 3
  
-HONEYTAIL_VERSION="1.132"
+HONEYTAIL_VERSION="1.133"
 HONEYTAIL_CHECKSUM = {
-    "Linux": "e1dbad11de19ad4c710bfa20b1f8681ae597360707ae8e280c2edaaa2641d8c8",
-    #"Darwin": "68cfd0cdc8c016d3d8b62ff6d6388e0c8e24bd83174e45ada6c761c365aaa677",
+    "Linux": "530c16d09086d1db91ae8d101553162a22e7536066a29f34156fb25f97500dc7",
+    "Darwin": "ae422f42d133f876db1a3d766c79df12ea23dc2a06937639a4dc20ac2cd059c1"
 }.get(platform.system(), None)
 
 HONEYTAIL_URL = {
-    "Linux": "https://honeycomb.io/download/honeytail/"+HONEYTAIL_VERSION,
-    #"Darwin": "http://localhost:8080/honeytail"
+    "Linux": "https://honeycomb.io/download/honeytail/linux/"+HONEYTAIL_VERSION,
+    "Darwin": "https://honeycomb.io/download/honeytail/darwin/"+HONEYTAIL_VERSION
 }.get(platform.system(), None)
 
 
