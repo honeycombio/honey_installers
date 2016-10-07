@@ -8,4 +8,6 @@ dist/
 *.pyc
 *.state
 *~
-honeytail*
+honeytail
+honeytail.linux
+honeytail.darwin
