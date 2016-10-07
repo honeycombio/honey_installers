@@ -53,16 +53,16 @@ sizeG = 1024 * sizeM
 
 def estimate_ingest_time(file_size, take_or_be):
     # these are totally pulled out of thin air and may be *way* off
-    if file_size > 5 * sizeG:
-        return "may " + take_or_be + " several hours"
-    elif file_size > 1 * sizeG:
-        return "may " + take_or_be + " a couple hours"
-    elif file_size > 500 * sizeM:
-        return "may " + take_or_be + " an hour"
-    elif file_size > 1 * sizeM:
-        return "may " + take_or_be + " several minutes"
-    else:
-        return "may " + take_or_be + " a couple minutes"
+    estimates = [
+        (5 * sizeG, " several hours"),
+        (1 * sizeG, " a couple hours"),
+        (500 * sizeM, " an hour"),
+        (1 * sizeM, " several minutes"),
+    ]
+    for est in estimates:
+        if file_size > est[0]:
+            return "may " + take_or_be + est
+    return "may " + take_or_be + " a couple minutes"
 
 class HoneyInstaller(object):
     def __init__(self, installer_name, installer_version, parser_module, parser_extra_flags, writekey, dataset, default_dataset, honeytail_loc, debug):
@@ -89,16 +89,18 @@ class HoneyInstaller(object):
             return
         
         existing_version, existing_newer = self.check_honeytail_version()
-        if not existing_newer:
-            if self.honeytail_loc != "honeytail":
-                click.secho("... honeytail version at %s is too old (%s), downloading new version (%s) to ./honeytail." % (self.honeytail_loc, existing_version, HONEYTAIL_VERSION), bold=True)
-            else:
-                click.secho("... honeytail version is too old (%s), downloading new version (%s)." % (existing_version, HONEYTAIL_VERSION), bold=True)
-
-            self.honeytail_loc = self.fetch_honeytail()
+        if existing_newer:
+            click.secho("... found existing honeytail binary.", bold=True)
+            click.echo()
             return
+        
+        if self.honeytail_loc != "honeytail":
+            click.secho("... honeytail version at %s is too old (%s), downloading new version (%s) to ./honeytail." % (self.honeytail_loc, existing_version, HONEYTAIL_VERSION), bold=True)
+        else:
+            click.secho("... honeytail version is too old (%s), downloading new version (%s)." % (existing_version, HONEYTAIL_VERSION), bold=True)
 
-        click.secho("... found existing honeytail binary.", bold=True)
+        self.honeytail_loc = self.fetch_honeytail()
+
         click.echo()
 
 
@@ -106,28 +108,34 @@ class HoneyInstaller(object):
         honeytail_cmd = os.path.abspath(self.honeytail_loc)
         try:
             verstring = subprocess.check_output([honeytail_cmd, "--version"], stderr=subprocess.STDOUT)
+
+            verstring = re.sub(r'Honeytail version', '', verstring).strip()
+            return verstring, StrictVersion(verstring) >= StrictVersion(HONEYTAIL_VERSION)
         except OSError:
             return "unknown", False
-    
-        verstring = re.sub(r'Honeytail version', '', verstring).strip()
-        return verstring, StrictVersion(verstring) >= StrictVersion(HONEYTAIL_VERSION)
 
     def fetch_honeytail(self):
-        # Mac doesn't ship with wget, we could use curl
         if not HONEYTAIL_URL:
             click.echo("""Sorry, {installer_name} auto configuration is not supported for {platform}.
 Please see the docs or ask for further assistance.
 https://honeycomb.io/docs/send-data/agent/""".format(installer_name=self.installer_name, platform=platform.system()))
             sys.exit(1)
 
-        dest = "./honeytail"
+        return self.fetch_file("honeytail", HONEYTAIL_URL, HONEYTAIL_CHECKSUM, ensure_exec=True)
+
+    def fetch_file(self, name, url, checksum=None, ensure_exec=False):
+        '''downloads the file from url and saves to ./name, optionally checking against
+           a sha256 hash and making executable'''
+        dest = "./" + name
         dest_tmp = dest + "-tmp"
 
         with open(dest_tmp, "wb") as fb:
             headers = {"User-Agent": self.get_user_agent()}
-            resp = requests.get(HONEYTAIL_URL, stream=True, headers=headers)
+            resp = requests.get(url, stream=True, headers=headers)
             if resp.status_code != 200:
-                click.echo("There was an error downloading honeytail. Please try again or let us know what happened.")
+                click.echo("There was an error downloading {}. Please try again or let us know what happened.".format(name))
+                if self.debug:
+                    click.secho("response status code = {}".format(resp.status_code), bold=True)
                 try:
                     os.remove(dest_tmp)
                 except OSError:
@@ -141,7 +149,7 @@ https://honeycomb.io/docs/send-data/agent/""".format(installer_name=self.install
                     fb.write(chunk)
                     bar.update(len(chunk))
 
-        if HONEYTAIL_CHECKSUM:
+        if checksum:
             click.echo("Verifying the download.")
             hash = hashlib.sha256()
             with open(dest_tmp, "rb") as fh:
@@ -151,20 +159,22 @@ https://honeycomb.io/docs/send-data/agent/""".format(installer_name=self.install
                         break
                     hash.update(chunk)
 
-            if hash.hexdigest() != HONEYTAIL_CHECKSUM:
+            if hash.hexdigest() != checksum:
                 click.echo("The hash of the downloaded file didn't match the one on record.")
                 click.echo("Please try again or ask for further assistance.")
-                logging.error("Expecting : {} but received {}".format(HONEYTAIL_CHECKSUM, hash.hexdigest()))
+                logging.error("Expecting : {} but received {}".format(checksum, hash.hexdigest()))
                 shutil.move(dest_tmp, dest+"-badchecksum")
                 sys.exit(1)
 
         shutil.move(dest_tmp, dest)
-        
-        click.echo("Ensuring %s is executable." % dest)
-        click.echo()
-        os.chmod(dest, stat.S_IRWXU | stat.S_IXGRP | stat.S_IXOTH | stat.S_IRGRP | stat.S_IROTH)
-        return dest
 
+        if ensure_exec:
+            os.chmod(dest, stat.S_IRWXU | stat.S_IXGRP | stat.S_IXOTH | stat.S_IRGRP | stat.S_IROTH)
+
+        click.echo()
+        
+        return dest
+        
 
     def get_user_agent(self):
         return "{installer_name}-installer/{installer_version}".format(installer_name=self.installer_name, installer_version=self.installer_version)
@@ -289,6 +299,8 @@ rotated log files in order to backfill more data. You can run the command at any
 
 
     def tail(self, after_backfill):
+        """run honeytail and send new events from log.  after_backfill is true if this step was done after calling the backfill() method"""
+
         self.pre_tail_hook(after_backfill)
 
         tail_lines = self.get_tail_lines(self.log_file)
@@ -316,6 +328,7 @@ or add it to system startup scripts.
 
 
     def show_commands(self):
+        """prints out the commands for backfilling and tailing"""
         self.pre_show_commands_hook()
         
         tail_lines = self.get_tail_lines(self.log_file)
@@ -374,7 +387,7 @@ We're going to attempt to autoconfigure honeytail for your {installer_name} inst
         while not self.log_file:
             self.log_file = self.prompt_for_log_file()
 
-        click.secho("... found log file at {log_file}".format(log_file=self.log_file), bold=True)
+        click.secho("... using log file at {log_file}".format(log_file=self.log_file), bold=True)
         
         mode, file_size = self.prompt_for_run_mode()
 
