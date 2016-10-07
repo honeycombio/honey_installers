@@ -15,11 +15,25 @@ TOP=$(dirname $0)/..
 
 rm -f $TOP/honeytail.linux $TOP/honeytail.darwin
 
+platform=$(uname)
+case $platform in
+  Darwin)
+    SHA256SUM="shasum -a 256"
+    ;;
+  Linux)
+    SHA256SUM=sha256sum
+    ;;
+  *)
+    echo "Don't know what sha256sum to use for platform '$platform'"
+    exit 1
+    ;;
+esac
+
 curl -L -o $TOP/honeytail.linux https://honeycomb.io/download/honeytail/linux/$honeytail_version
 curl -L -o $TOP/honeytail.darwin https://honeycomb.io/download/honeytail/darwin/$honeytail_version
 
-linux_sha256=$(shasum -a 256 $TOP/honeytail.linux | cut -d' ' -f 1)
-darwin_sha256=$(shasum -a 256 $TOP/honeytail.darwin | cut -d' ' -f 1)
+linux_sha256=$($SHA256SUM $TOP/honeytail.linux | cut -d' ' -f 1)
+darwin_sha256=$($SHA256SUM $TOP/honeytail.darwin | cut -d' ' -f 1)
 
 cat <<EOF > $TOP/honey_installer/honeytail_version.py
 # generated file - do not edit
