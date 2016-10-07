@@ -2,7 +2,7 @@
 
 ## [How to run it](https://honeycomb.io/docs/send-data/connectors/mysql/#automatic-installation)
 
-(Replace the `x` in `1.x` with the most recent [travis build](https://travis-ci.org/honeycombio/mysql_installer) number.)
+(Replace the `x` in `1.x` with the most recent [travis build](https://travis-ci.com/honeycombio/honey_installers) number.)
 
 ## What it does
 
