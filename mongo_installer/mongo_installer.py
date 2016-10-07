@@ -257,7 +257,7 @@ class MongoInstaller(HoneyInstaller):
 @click.option("--dataset", "-d", help="Your Honeycomb Dataset", default=DEFAULT_DATASET)
 @click.option("--file", "-f", "log_filename", help="Mongo Log File")
 @click.option("--honeytail", help="Honeytail location", default="honeytail")
-@click.option("--debug", help="Turn Debug mode on", default=False)
+@click.option("--debug/--no-debug", help="Turn Debug mode on", default=False)
 @click.version_option(INSTALLER_VERSION)
 def start(writekey, dataset, log_filename, honeytail, debug):
 

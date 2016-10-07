@@ -246,61 +246,6 @@ hit Enter to continue, 'n' to abort""", default=True):
         click.echo("Ok, aborting.")
         sys.exit(0)
 
-def _backfill(honeytail_loc, conf_loc, log_name, log_format, dataset, writekey):
-    click.echo("""
---
-honeytail only parses new log lines by default (like `tail -f`) but it can also
-backfill existing logs.
-
-Backfilling a little data from the existing log will get you started with the
-query tools faster.
-""")
-    ask = click.confirm("Would you like to backfill using {} now?".format(log_name),
-        default=True)
-
-    honeytail_cmd = os.path.abspath(honeytail_loc)
-    backfill_command = """{honeytail_cmd} --writekey="{writekey}" --parser="nginx" --nginx.conf="{conf_loc}" --nginx.format="{log_format}" --file="{log_name}" --tail.read_from=beginning --tail.stop --dataset="{dataset}" --backoff""".format(
-        honeytail_cmd=honeytail_cmd,
-        conf_loc=conf_loc,
-        log_format=log_format,
-        log_name=log_name,
-        dataset=dataset,
-        writekey=writekey,
-    )
-
-    if self.debug:
-        backfill_command += " --debug"
-
-    commands = backfill_command.split()
-    if ask:
-        click.echo("About to run (this could take a few minutes):")
-        click.echo()
-        click.echo("  {} \\".format(commands[0]))
-        for x in commands[1:-1]:
-            click.echo("    {} \\".format(x))
-        click.echo("    {}".format(commands[-1]))
-        subprocess.call(backfill_command, shell=True)
-        click.echo("All done.")
-    else:
-        ## Print command
-        click.echo("""
-OK, we're not going to backfill right now. In order to backfill later, you should
-snag a copy of the nginx config to preserve the current log config.
-Please make a copy:
-    cp {} ~/
-
-When you're ready to backfill, use the following command
-""".format(conf_loc))
-        click.echo()
-        click.echo("  {} \\".format(commands[0]))
-        for x in commands[1:-1]:
-            if "nginx.conf" in x:
-                x = x.replace(conf_loc, "~/{}".format(os.path.basename(conf_loc)))
-            click.echo("    {} \\".format(x))
-        click.echo("    {}".format(commands[-1]))
-        if not click.confirm("All copied and ready to continue?", default=True):
-            click.echo("Ok, aborting.")
-            sys.exit()
 
 def _get_nginx_version():
     '''calls out to nginx -v to get the nginx version number (eg 1.4.2)'''
@@ -380,7 +325,7 @@ We'll show you how, after you get a chance to backfill any existing logs.""")
 @click.option("--nginx.conf", "nginx_conf", help="Nginx Config location")
 @click.option("--nginx.format", "nginx_format", help="The name of the log_format from your nginx config that you wish to use with Honeycomb")
 @click.option("--honeytail", help="Honeytail location", default="honeytail")
-@click.option("--debug", help="Turn Debug mode on", default=False)
+@click.option("--debug/--no-debug", help="Turn Debug mode on", default=False)
 @click.version_option(INSTALLER_VERSION)
 def start(writekey, dataset, log_filename, nginx_conf, nginx_format, honeytail, debug):
 

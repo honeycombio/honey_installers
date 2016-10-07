@@ -219,7 +219,7 @@ In order to backfill later, use the following command:
 @click.option("--honeytail", help="Honeytail location", default="honeytail")
 @click.option("--username", help="mysql username", default="root")
 @click.option("--password", help="mysql password", default="")
-@click.option("--debug", help="Turn Debug mode on", default=False)
+@click.option("--debug/--no-debug", help="Turn Debug mode on", default=False)
 @click.version_option(INSTALLER_VERSION)
 def start(writekey, dataset, log_filename, honeytail, username, password, debug):
 
