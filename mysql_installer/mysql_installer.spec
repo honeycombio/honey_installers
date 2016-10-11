@@ -3,8 +3,7 @@
 block_cipher = None
 
 
-a = Analysis(['mysql_installer.py'],
-             #pathex=['/Users/issackelly/Projects/honeycombio/mysql_installer'],
+a = Analysis(['mysql_installer.py', '../honey_installer/installer.py'],
              binaries=None,
              datas=None,
              hiddenimports=[],
