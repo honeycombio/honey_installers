@@ -40,7 +40,8 @@ TEAM_URL = "https://api.honeycomb.io/1/team_slug"
 def get_choice(choices, prompt):
     while True:
         for i, choice in enumerate(choices):
-            click.echo("  [{}] {}".format(i + 1, choice))
+            click.secho("  [{}] ".format(i+1), nl=False, bold=True)
+            click.echo(choice)
         choice = click.prompt(prompt, type=int)
         if choice > 0 and choice <= len(choices):
             return choice
@@ -86,6 +87,9 @@ class HoneyInstaller(object):
         click.secho(msg, fg="red")
         
     def check_honeytail(self):
+        """make sure we have a usable honeytail.  will use the user-supplied
+        executable if its version is >= HONEYTAIL_VERSION.  Otherwise, fetches
+        a new one."""
         if not os.path.isfile(self.honeytail_loc):
             if self.honeytail_loc == "honeytail":
                 # the default location
@@ -115,6 +119,9 @@ class HoneyInstaller(object):
 
 
     def check_honeytail_version(self):
+        """runs honeytail_cmd --version and compares the version returned to
+        HONEYTAIL_VERSION.  Returns a tuple of (version_string, version_newer)
+        where version_newer is True if version_string compares >= to HONEYTAIL_VERSION."""
         honeytail_cmd = os.path.abspath(self.honeytail_loc)
         try:
             verstring = subprocess.check_output([honeytail_cmd, "--version"], stderr=subprocess.STDOUT)
@@ -126,7 +133,7 @@ class HoneyInstaller(object):
 
     def fetch_honeytail(self):
         if not HONEYTAIL_URL:
-            click.echo("""\
+            self.error("""\
 Sorry, {installer_name} auto configuration is not supported for {platform}.
 Please see the docs or ask for further assistance.
 https://honeycomb.io/docs/send-data/agent/""".format(installer_name=self.installer_name, platform=platform.system()))
@@ -135,8 +142,8 @@ https://honeycomb.io/docs/send-data/agent/""".format(installer_name=self.install
         return self.fetch_file("honeytail", HONEYTAIL_URL, HONEYTAIL_CHECKSUM, ensure_exec=True)
 
     def fetch_file(self, name, url, checksum=None, ensure_exec=False):
-        '''downloads the file from url and saves to ./name, optionally checking against
-           a sha256 hash and making executable'''
+        """downloads the file from url and saves to ./name, optionally checking against
+           a sha256 hash and making executable"""
         dest = "./" + name
         dest_tmp = dest + "-tmp"
 
@@ -192,13 +199,13 @@ https://honeycomb.io/docs/send-data/agent/""".format(installer_name=self.install
 
     
     def get_team_slug(self):
-        '''calls out to Honeycomb to turn the writekey into the slug necessary to
-        form the URL straight in to the dataset in the UI'''
+        """calls out to Honeycomb to turn the writekey into the slug necessary to
+        form the URL straight in to the dataset in the UI"""
         headers = {"X-Honeycomb-Team": self.writekey,
                    "User-Agent": self.get_user_agent()}
         resp = requests.get(TEAM_URL, headers=headers)
         if resp.status_code != 200:
-            click.echo("There was an error resolving your Team Name. Please verify your write key and try again, or let us know what happened.")
+            self.error("There was an error resolving your Team Name. Please verify your write key and try again, or let us know what happened.")
             sys.exit(1)
         team_slug = resp.json()["team_slug"]
         self.success("Team resolved: {}".format(team_slug))
@@ -208,13 +215,11 @@ https://honeycomb.io/docs/send-data/agent/""".format(installer_name=self.install
     def prompt_for_writekey_and_dataset(self):
         if self.writekey == "":
             self.writekey = click.prompt("What is your Honeycomb Write Key? (Available at https://ui.honeycomb.io/account)")
-            click.echo()
 
         self.team_slug = self.get_team_slug()
             
         if self.dataset == self.default_dataset:
             self.dataset = click.prompt("What Honeycomb dataset should we send events to (will be created it not present)?", default=self.default_dataset)
-            click.echo()
 
 
     def prompt_for_run_mode(self):
@@ -258,28 +263,37 @@ It can also backfill existing logs, which can get you started with more data in 
             click.secho("    {} \\".format(x), bold=True)
         click.secho("    {}".format(lines[-1]), bold=True)
 
-        
+
+    def _format_line(self, line, honeytail_cmd, log_file):
+        return line.format(honeytail_cmd=honeytail_cmd,
+                           parser_module=self.parser_module,
+                           parser_extra_flags=self.parser_extra_flags,
+                           writekey=self.writekey,
+                           dataset=self.dataset,
+                           log_file=log_file)
+
+
     def get_tail_lines(self, log_file):
         honeytail_cmd = os.path.abspath(self.honeytail_loc)
 
-        return [
-            "{honeytail_cmd}".format(honeytail_cmd=honeytail_cmd),
-            """--parser="{parser_module}" {parser_extra_flags}""".format(parser_module=self.parser_module, parser_extra_flags=self.parser_extra_flags),
-            """--writekey="{writekey}" --dataset="{dataset}" """.format(writekey=self.writekey, dataset=self.dataset),
-            """--file="{log_file}" """.format(log_file=log_file)
-        ]
+        return map(lambda l: self._format_line(l, honeytail_cmd, log_file), [
+            "{honeytail_cmd}",
+            """--parser="{parser_module}" {parser_extra_flags}""",
+            """--writekey="{writekey}" --dataset="{dataset}" """,
+            """--file="{log_file}" """
+        ])
 
 
     def get_backfill_lines(self, log_file):
         honeytail_cmd = os.path.abspath(self.honeytail_loc)
 
-        return [
-            "{honeytail_cmd}".format(honeytail_cmd=honeytail_cmd),
-            """--parser="{parser_module}" {parser_extra_flags}""".format(parser_module=self.parser_module, parser_extra_flags=self.parser_extra_flags),
+        return map(lambda l: self._format_line(l, honeytail_cmd, log_file), [
+            "{honeytail_cmd}",
+            """--parser="{parser_module}" {parser_extra_flags}""",
             "--tail.read_from=beginning --tail.stop --backoff",
-            """--writekey="{writekey}" --dataset="{dataset}" """.format(writekey=self.writekey, dataset=self.dataset),
-            """--file="{log_file}" """.format(log_file=log_file)
-        ]
+            """--writekey="{writekey}" --dataset="{dataset}" """,
+            """--file="{log_file}" """
+        ])
 
     
     def backfill(self, file_size):
@@ -359,7 +373,7 @@ or add it to system startup scripts.
         click.echo()
 
 
-    def hook(self):
+    def fixup_and_suggest(self):
         pass
 
 
@@ -410,8 +424,8 @@ a query against your new {installer_name} data:
     
     def output_step(self, step_number, step_count, step_message):
         click.echo()
-        click.secho("[{}/{}] ".format(step_number, step_count), bold=True, nl=False)
-        click.echo(step_message + "...")
+        click.secho("[{}/{}] ".format(step_number, step_count), dim=True, nl=False)
+        click.secho(step_message + "...", bold=True)
         
     def start(self):
         click.secho("Honeytail {} installer".format(self.installer_name), bold=True, underline=True)
