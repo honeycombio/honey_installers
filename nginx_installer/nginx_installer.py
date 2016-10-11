@@ -46,214 +46,6 @@ NGINX_WHITELIST_LOCATIONS = [
     "/usr/local/etc/nginx/nginx.conf",  # OSX, Homebrew
 ]
 
-def _find_nginx_conf(conf_loc=None):
-    click.echo("Looking for nginx config...")
-    click.echo()
-
-    found = False
-    if not conf_loc:
-        for conf_loc in NGINX_WHITELIST_LOCATIONS:
-            if os.path.isfile(conf_loc):
-                click.echo("Found nginx config at %s" % conf_loc)
-                click.echo()
-                found = True
-                break
-
-    if os.path.isfile(conf_loc):
-        found = True
-
-    while not found:
-        click.echo("We couldn't locate your nginx config. Could you please type the full location below?\n")
-        # Should we log these on the server to add to the whitelist?
-        conf_loc = click.prompt("Nginx Conf Location: ")
-        if os.path.isfile(conf_loc):
-            found = True
-            break
-        if conf_loc.lower in ["", "exit", "quit", "q"]:
-            click.echo("Exiting.\n")
-            sys.exit(1)
-
-    return conf_loc
-
-
-def _parse_nginx(conf_loc, debug):
-    click.echo("Processing Nginx config: %s" % conf_loc)
-    try:
-        with open(conf_loc, "r") as fh:
-            parsed = NginxParser(fh.read()).as_list()
-    except OSError:
-        click.echo("We can't read your nginx config with the existing permissions. Please update the permissions or run as sudo and try again.")
-        sys.exit(1)
-
-    def _descend(parsed):
-        found_formats = []
-        found_logs = []
-        for item in parsed:
-            if isinstance(item, list):
-                x, y = _descend(item)
-                found_formats.extend(x)
-                found_logs.extend(y)
-
-            if isinstance(item, str):
-                if item == "log_format":
-                    found_formats.append(parsed)
-                if item == "access_log":
-                    found_logs.append(parsed)
-        return found_formats, found_logs
-
-    log_formats, access_logs = _descend(parsed)
-
-    if debug:
-        click.echo("log formats and access logs found:")
-        pprint.pprint(log_formats)
-        pprint.pprint(access_logs)
-
-    return access_logs, log_formats
-
-
-def _get_access_log(access_logs, conf_loc, log_filename=None, log_format_name=None):
-    abs_base_path = __file__
-
-    if not log_filename:
-        if access_logs:
-            abs_base_path = conf_loc
-            if len(access_logs) > 1:
-                click.echo("\nWe found the following access logs in your nginx config:")
-                for i, log_list in enumerate(access_logs):
-                    click.echo(" [%s] %s" % ((i + 1), log_list[1].split()[0]))
-                log_index = click.prompt("Which log would you like to send to honeycomb?", type=int, default=1)
-                try:
-                    log_item = access_logs[log_index - 1]
-                except (TypeError, IndexError):
-                    click.echo("That wasn't one of the choices. You can also specify a full access log location with the --file option. Sorry.")
-                    sys.exit()
-            else:
-                log_item = access_logs[0]
-                click.echo("Using log located at:")
-                click.echo("    %s" % log_item[1])
-
-            log_parts = log_item[1].split()
-            log_filename = log_parts[0]
-            if len(log_parts) > 1:
-                log_format_name = log_parts[1]
-            else:
-                log_format_name = "combined"
-        else:
-            log_filename = "/var/log/nginx/access.log"
-            click.echo("We'll start by using the default log location of")
-            click.echo("    %s" % log_filename)
-
-    # Turn a relative path into an absolute path
-    if log_filename[0] != "/":
-        log_filename = os.path.join(os.path.dirname(abs_base_path), log_filename)
-
-    if not log_format_name:
-        if access_logs:
-            # Attempt to guess the log format.
-            for i, log_list in enumerate(access_logs):
-                parts = log_list[1].split()
-                if parts[0] == log_filename and len(parts) > 1:
-                    log_format_name = parts[1]
-
-            # Still no? show the found formats and ask
-            if not log_format_name:
-                click.echo("\nWe found the following access logs in your nginx config:")
-                formats = set()
-                for log_list in access_logs:
-                    parts = log_list[1].split()
-                    if len(parts) > 1:
-                        formats.add(parts[1])
-                        click.echo("[%s] %s" % (parts[1], parts[0]))
-                if formats:
-                    log_format_name = click.prompt("Which log format would you like to use?", default=list(formats)[0], type=click.Choice(formats))
-
-    if not log_format_name:
-        log_format_name = "combined"
-        click.echo("and the default log format '%s'" % log_format_name)
-
-    click.echo("Checking Permissions...")
-    try:
-        with open(log_filename) as fb:
-            # check that we can read a line; doesn't matter what it is.
-            _ = fb.readline()
-    except IOError:
-        click.echo("It doesn't look like we have permissions to read that file.\n")
-        click.echo("Please change the permissions or run as sudo and try again.")
-        sys.exit()
-
-    return log_filename, log_format_name
-
-
-def _give_log_recs(conf_loc, name, log_filename, all_formats, nginx_version):
-    click.echo("-" * 80)
-
-    full_format = None
-    for f in all_formats:
-        if f[1].startswith(name + " "):
-            full_format = f[1]
-            break
-
-    if not full_format:
-        click.echo("Something went wrong and I can't identify your format.")
-        click.echo("The program is exiting and we're really unhappy.")
-        sys.exit(1)
-
-    click.echo("""
-Honeycomb works best with lots of fields, and nginx has a great set of
-extra fields available out of the box. Let's take a look at your config to see
-if you're missing anything useful.
-
-We'll return a list of variables to add to your log_format line.
-""")
-    click.echo("For reference, your current format is:")
-    click.echo("    {}".format(full_format))
-    click.echo()
-    if not click.confirm("Ready to see what you're missing?", default="Y"):
-        click.echo("Ok, aborting.")
-        sys.exit(0)
-
-    click.echo("-" * 80)
-    click.echo("Your access log is missing the following useful fields:")
-
-    passed_all_checks = True
-
-    vars_to_add = list()
-
-    for var, ver_mess in MESSAGES.iteritems():
-        version, message = ver_mess
-        if var not in full_format and semver.compare(nginx_version, version) >= 0:
-            click.secho("    {:<24}".format(var), bold=True, nl=False)
-            click.echo(": {}".format(message))
-            vars_to_add.append(var)
-            passed_all_checks = False
-    click.echo("-" * 80)
-    click.secho("Review complete.", bold=True)
-    click.echo("""
-Here's a complete log format that we would use for nginx with Honeycomb:
-
-    log_format   {full_format} {vars_to_add}';
-    access_log   {log_filename}  {name};
-""".format(
-    name = name,
-    full_format = full_format.rstrip("' "),
-    vars_to_add = " ".join(vars_to_add),
-    log_filename = log_filename))
-
-    click.echo("If you like these changes, go ahead and edit your nginx config (at {}) now.".format(conf_loc))
-    click.echo("Please make sure to reload nginx (sudo nginx -s reload) after any changes to the config.")
-    if not click.confirm("""\nOnce you're finished making changes and have reloaded nginx,
-hit Enter to continue, 'n' to abort""", default=True):
-        click.echo("Ok, aborting.")
-        sys.exit(0)
-
-
-def _get_nginx_version():
-    '''calls out to nginx -v to get the nginx version number (eg 1.4.2)'''
-    verstring = subprocess.check_output(["nginx", "-v"], stderr=subprocess.STDOUT)
-    version = verstring.split()[2]
-    vernum = version.split("/")[1]
-    return vernum
-
 class NginxInstaller(HoneyInstaller):
     def __init__(self, writekey, dataset, honeytail, debug, log_filename, nginx_conf, log_format):
         super(NginxInstaller, self).__init__(INSTALLER_NAME, INSTALLER_VERSION, PARSER_MODULE,
@@ -264,7 +56,7 @@ class NginxInstaller(HoneyInstaller):
         self.log_format = log_format
         self.parser_extra_flags_format = """--nginx.conf="{nginx_conf}" --nginx.format="{log_format}" """
 
-    def hook(self):
+    def fixup_and_suggest(self):
         pass
 
     def pre_backfill_hook(self):
@@ -289,7 +81,7 @@ When you're ready to backfill, use the following command""".format(self.nginx_co
         self.parser_extra_flags = self.parser_extra_flags_format.format(nginx_conf=self.nginx_conf, log_format=self.log_format)
         
     def find_log_file(self):
-        conf_loc = _find_nginx_conf(self.nginx_conf)
+        conf_loc = self._find_nginx_conf(self.nginx_conf)
 
         found_logs, log_formats = _parse_nginx(conf_loc, self.debug)
 
@@ -317,6 +109,209 @@ We'll show you how, after you get a chance to backfill any existing logs.""")
         click.echo()
         
         return access_log_name
+
+    def _find_nginx_conf(self, conf_loc=None):
+        click.echo("Looking for nginx config...")
+        click.echo()
+
+        found = False
+        if not conf_loc:
+            for conf_loc in NGINX_WHITELIST_LOCATIONS:
+                if os.path.isfile(conf_loc):
+                    self.success("Found nginx config at %s" % conf_loc)
+                    click.echo()
+                    found = True
+                    break
+
+        if os.path.isfile(conf_loc):
+            found = True
+
+        while not found:
+            self.warn("We couldn't locate your nginx config. Could you please type the full location below?\n")
+            # Should we log these on the server to add to the whitelist?
+            conf_loc = click.prompt("Nginx Conf Location: ")
+            if os.path.isfile(conf_loc):
+                found = True
+                break
+            if conf_loc.lower in ["", "exit", "quit", "q"]:
+                click.echo("Exiting.\n")
+                sys.exit(1)
+
+        return conf_loc
+
+
+    def _parse_nginx(self, conf_loc, debug):
+        self.success("Processing Nginx config: %s" % conf_loc)
+        try:
+            with open(conf_loc, "r") as fh:
+                parsed = NginxParser(fh.read()).as_list()
+        except OSError:
+            self.error("We can't read your nginx config with the existing permissions. Please update the permissions or run as sudo and try again.")
+            sys.exit(1)
+
+        def _descend(parsed):
+            found_formats = []
+            found_logs = []
+            for item in parsed:
+                if isinstance(item, list):
+                    x, y = _descend(item)
+                    found_formats.extend(x)
+                    found_logs.extend(y)
+
+                if isinstance(item, str):
+                    if item == "log_format":
+                        found_formats.append(parsed)
+                    if item == "access_log":
+                        found_logs.append(parsed)
+            return found_formats, found_logs
+
+        log_formats, access_logs = _descend(parsed)
+
+        if debug:
+            self.success("log formats and access logs found:")
+            pprint.pprint(log_formats)
+            pprint.pprint(access_logs)
+
+        return access_logs, log_formats
+
+
+    def _get_access_log(self, access_logs, conf_loc, log_filename=None, log_format_name=None):
+        abs_base_path = __file__
+
+        if not log_filename:
+            if access_logs:
+                abs_base_path = conf_loc
+                if len(access_logs) > 1:
+                    click.echo("\nWe found the following access logs in your nginx config:")
+                    for i, log_list in enumerate(access_logs):
+                        click.echo(" [%s] %s" % ((i + 1), log_list[1].split()[0]))
+                    log_index = click.prompt("Which log would you like to send to honeycomb?", type=int, default=1)
+                    try:
+                        log_item = access_logs[log_index - 1]
+                    except (TypeError, IndexError):
+                        self.error("That wasn't one of the choices. You can also specify a full access log location with the --file option. Sorry.")
+                        sys.exit()
+                else:
+                    log_item = access_logs[0]
+                    click.echo("Using log located at {}".format(log_item[1]))
+
+                log_parts = log_item[1].split()
+                log_filename = log_parts[0]
+                if len(log_parts) > 1:
+                    log_format_name = log_parts[1]
+                else:
+                    log_format_name = "combined"
+            else:
+                log_filename = "/var/log/nginx/access.log"
+                click.echo("We'll start by using the default log location of {}".format(log_filename))
+
+        # Turn a relative path into an absolute path
+        if log_filename[0] != "/":
+            log_filename = os.path.join(os.path.dirname(abs_base_path), log_filename)
+
+        if not log_format_name:
+            if access_logs:
+                # Attempt to guess the log format.
+                for i, log_list in enumerate(access_logs):
+                    parts = log_list[1].split()
+                    if parts[0] == log_filename and len(parts) > 1:
+                        log_format_name = parts[1]
+
+                # Still no? show the found formats and ask
+                if not log_format_name:
+                    click.echo("\nWe found the following access logs in your nginx config:")
+                    formats = set()
+                    for log_list in access_logs:
+                        parts = log_list[1].split()
+                        if len(parts) > 1:
+                            formats.add(parts[1])
+                            click.echo("[%s] %s" % (parts[1], parts[0]))
+                    if formats:
+                        log_format_name = click.prompt("Which log format would you like to use?", default=list(formats)[0], type=click.Choice(formats))
+
+        if not log_format_name:
+            log_format_name = "combined"
+            click.echo("and the default log format '%s'" % log_format_name)
+
+        click.echo("Checking Permissions...")
+        try:
+            with open(log_filename) as fb:
+                # check that we can read a line; doesn't matter what it is.
+                _ = fb.readline()
+        except IOError:
+            self.error("It doesn't look like we have permissions to read that file.\n")
+            self.error("Please change the permissions or run as sudo and try again.")
+            sys.exit()
+
+        return log_filename, log_format_name
+
+
+    def _give_log_recs(self, conf_loc, name, log_filename, all_formats, nginx_version):
+        click.echo("-" * 80)
+
+        full_format = None
+        for f in all_formats:
+            if f[1].startswith(name + " "):
+                full_format = f[1]
+                break
+
+        if not full_format:
+            self.error("Something went wrong and I can't identify your format.")
+            self.error("The program is exiting and we're really unhappy.")
+            sys.exit(1)
+
+        click.echo("""
+Honeycomb works best with lots of fields, and nginx has a great set of
+extra fields available out of the box. Let's take a look at your config to see
+if you're missing anything useful.
+
+We'll return a list of variables to add to your log_format line.
+""")
+        click.echo("For reference, your current format is:")
+        click.echo("    {}".format(full_format))
+        click.echo()
+        if not click.confirm("Ready to see what you're missing?", default="Y"):
+            click.echo("Ok, aborting.")
+            sys.exit(0)
+
+        click.echo("-" * 80)
+        click.echo("Your access log is missing the following useful fields:")
+
+        vars_to_add = list()
+
+        for var, ver_mess in MESSAGES.iteritems():
+            version, message = ver_mess
+            if var not in full_format and semver.compare(nginx_version, version) >= 0:
+                click.secho("    {:<24}".format(var), bold=True, nl=False)
+                click.echo(": {}".format(message))
+                vars_to_add.append(var)
+        click.echo("-" * 80)
+        click.secho("Review complete.", bold=True)
+        click.echo("""
+Here's a complete log format that we would use for nginx with Honeycomb:
+
+    log_format   {full_format} {vars_to_add}';
+    access_log   {log_filename}  {name};
+""".format(
+        name = name,
+        full_format = full_format.rstrip("' "),
+        vars_to_add = " ".join(vars_to_add),
+        log_filename = log_filename))
+
+        click.echo("If you like these changes, go ahead and edit your nginx config (at {}) now.".format(conf_loc))
+        click.echo("Please make sure to reload nginx (sudo nginx -s reload) after any changes to the config.")
+        if not click.confirm("""\nOnce you're finished making changes and have reloaded nginx,
+hit Enter to continue, 'n' to abort""", default=True):
+            click.echo("Ok, aborting.")
+            sys.exit(0)
+
+
+    def _get_nginx_version(self):
+        '''calls out to nginx -v to get the nginx version number (eg 1.4.2)'''
+        verstring = subprocess.check_output(["nginx", "-v"], stderr=subprocess.STDOUT)
+        version = verstring.split()[2]
+        vernum = version.split("/")[1]
+        return vernum
 
 @click.command()
 @click.option("--writekey", "-k", help="Your Honeycomb Writekey", default="")

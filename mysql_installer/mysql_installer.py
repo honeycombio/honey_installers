@@ -24,7 +24,7 @@ TEAM_URL = "https://api.honeycomb.io/1/team_slug"
 def _check_mysql_connection(username, password):
     """Tries to connect to local MySQL.
     If it fails, asks for MySQL connection creds"""
-    click.echo("""Attempting to connect to local mysql and gather logging details.""")
+    click.echo("Connecting to local mysql and gather logging details...")
     # connect to mysql
     cmd = []
     cmd += MYSQL
@@ -44,7 +44,7 @@ def _check_mysql_connection(username, password):
             msg += " and no password."
         else:
             msg += " and the supplied password."
-        click.echo(msg)
+        click.secho(msg, fg="red")
         choice = get_choice(["Try again with new credentials",
                              "Skip checking for logging details and continue"],
                             "What would you like to do?")
@@ -57,9 +57,9 @@ def _check_mysql_connection(username, password):
         p = subprocess.Popen(MYSQL + ["--user", username, "--password", password, "-e", "SELECT 1"], stdout=subprocess.PIPE)
         p.communicate()
         if p.returncode != 0:
-            click.echo("""Sorry, but we still couldn't connect to a local mysql.
+            click.secho("""Sorry, but we still couldn't connect to a local mysql.
 This installer only works with mysql running on localhost:3306.
-Bailing out.""")
+Bailing out.""", fg="red")
             sys.exit()
 
     return (username, password)
@@ -179,7 +179,7 @@ class MysqlInstaller(HoneyInstaller):
         self.username = username
         self.password = password
 
-    def hook(self):
+    def fixup_and_suggest(self):
         # test connection to local mysql, get creds if necessary
         # returned (username, passwd) tuple will be empty strings if not necessary.
         self.username, self.password = _check_mysql_connection(self.username, self.password)
