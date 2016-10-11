@@ -7,7 +7,7 @@ build_number=$1
 
 platform=$(uname | tr "[:upper:]" "[:lower:]")
 status=0
-for name in mongo nginx; do
+for name in mysql mongo nginx; do
   expected_version="${name}_installer, version ${build_number}-${platform}"
   version=`../dist/${name}_installer --version 2>/dev/null`
   if [[ $version != $expected_version ]]; then
