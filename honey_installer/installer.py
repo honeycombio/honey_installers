@@ -104,7 +104,7 @@ class HoneyInstaller(object):
         
         existing_version, existing_newer = self.check_honeytail_version()
         if existing_newer:
-            self.success("Found usable honeytail binary (version {}).".format(existing_version))
+            self.success("Found usable honeytail binary (version {})".format(existing_version))
             click.echo()
             return
         
@@ -208,7 +208,7 @@ https://honeycomb.io/docs/send-data/agent/""".format(installer_name=self.install
             self.error("There was an error resolving your Team Name. Please verify your write key and try again, or let us know what happened.")
             sys.exit(1)
         team_slug = resp.json()["team_slug"]
-        self.success("Team resolved: {}".format(team_slug))
+        self.success("Great, found your team: {}".format(team_slug))
         return team_slug
 
         
@@ -219,7 +219,7 @@ https://honeycomb.io/docs/send-data/agent/""".format(installer_name=self.install
         self.team_slug = self.get_team_slug()
             
         if self.dataset == self.default_dataset:
-            self.dataset = click.prompt("What Honeycomb dataset should we send events to (will be created it not present)?", default=self.default_dataset)
+            self.dataset = click.prompt("Which Honeycomb dataset should we send events to? (It'll be created if it doesn't already exist)", default=self.default_dataset)
 
 
     def prompt_for_run_mode(self):
@@ -244,7 +244,7 @@ It can also backfill existing logs, which can get you started with more data in 
         choice = get_choice(["Backfill {} and then switch to tailing".format(self.log_file),
                              "Only tail {}".format(self.log_file),
                              "Show commands and exit"],
-                            "What would you like to do?")
+                            "Which would you like to do?")
         click.echo()
         return choice, file_size
 

@@ -90,7 +90,7 @@ class MysqlInstaller(HoneyInstaller):
             self.error(msg)
             choice = get_choice(["Try again with new credentials",
                                  "Skip checking for logging details and continue"],
-                                "What would you like to do?")
+                                "Which would you like to do?")
             if choice == 2:
                 # skip checking and continue
                 return ("", "")
@@ -186,7 +186,7 @@ Ok, we'll skip changing the slow_query_log settings right now. This means that,
 honeytail might not pick up new queries flowing through your MySQL instance.
 """)
         else:
-            self.success("your MySQL is already configured as we suggest")
+            self.success("Your current MySQL configuration looks great!")
 
 
     def find_log_file(self):
