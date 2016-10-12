@@ -234,8 +234,9 @@ It can also backfill existing logs, which can get you started with more data in 
 
         estimate = estimate_ingest_time(file_size, "be")
         if estimate != "":
-            click.echo("{log_file} size is {file_size} bytes, so it {estimate} before honeytail is sending real-time data.".format(
-                log_file=self.log_file, file_size=file_size, estimate=estimate))
+            click.echo("{log_file} size is {file_size} bytes,".format(log_file=self.log_file, file_size=file_size))
+            click.echo("so if you decide to backfill, it {estimate} before honeytail".format(estimate=estimate))
+            click.echo("is sending real-time data.")
             click.echo()
 
         click.echo("How would you like to start the data flowing to honeycomb?")
@@ -248,10 +249,10 @@ It can also backfill existing logs, which can get you started with more data in 
         return choice, file_size
 
     def prompt_for_log_file(self):
-        log_file = click.prompt("please enter the path to your {} log file".format(self.installer_name))
+        log_file = click.prompt("Please enter the path to your {} log file".format(self.installer_name))
         click.echo()
         if not os.path.isfile(log_file):
-            click.echo("We were unable to locate a log file at {}".format(log_file))
+            self.warn("We were unable to locate a log file at {}".format(log_file))
             return None
         return log_file
 
@@ -317,9 +318,7 @@ rotated log files in order to backfill more data. You can run the command at any
         click.echo()
 
         estimate = estimate_ingest_time(file_size, "take")
-        if estimate != "":
-            estimate = "- " + estimate
-        click.secho("Backfilling from {log_file} {estimate}".format(log_file=self.log_file, estimate=estimate))
+        click.secho("Backfilling from {log_file} - {estimate}".format(log_file=self.log_file, estimate=estimate))
         subprocess.call(backfill_command, shell=True)
         self.success("Done backfilling from {log_file}".format(log_file=self.log_file))
         click.echo()
@@ -428,10 +427,10 @@ a query against your new {installer_name} data:
         click.secho(step_message + "...", bold=True)
         
     def start(self):
-        click.secho("Honeytail {} installer".format(self.installer_name), bold=True, underline=True)
+        click.secho("Honeytail {} installer {}".format(self.installer_name, get_version()), bold=True, underline=True)
 
         steps = [
-            ("Checking honeytail", self.check_honeytail),
+            ("Checking for honeytail", self.check_honeytail),
             ("Gathering honeycomb account info", self.prompt_for_writekey_and_dataset),
             ("Logging fixes/suggestions", self.fixup_and_suggest),
             ("Locating log file", self.locate_log_file),
