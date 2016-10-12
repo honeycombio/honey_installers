@@ -399,7 +399,7 @@ or add it to system startup scripts.
             self.error("We were unable to locate a log file")
         while not self.log_file:
             self.log_file = self.prompt_for_log_file()
-        self.success("using log file at {log_file}".format(log_file=self.log_file))
+        self.success("Using log file at {log_file}".format(log_file=self.log_file))
 
     def backfill_and_tail(self):
         mode, file_size = self.prompt_for_run_mode()

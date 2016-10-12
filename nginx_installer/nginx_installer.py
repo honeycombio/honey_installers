@@ -168,7 +168,7 @@ We'll show you how, after you get a chance to backfill any existing logs.""")
         log_formats, access_logs = _descend(parsed)
 
         if debug:
-            self.success("log formats and access logs found:")
+            self.success("Found the following log formats and access logs:")
             pprint.pprint(log_formats)
             pprint.pprint(access_logs)
 

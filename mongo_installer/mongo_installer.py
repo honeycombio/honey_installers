@@ -108,12 +108,12 @@ class MongoInstaller(HoneyInstaller):
         p = subprocess.Popen(["mongod", "--version"], stdout=subprocess.PIPE)
         full_verstring = p.communicate()
         if p.returncode != 0:
-            self.error("failed to determine the version of mongod you're running.")
+            self.error("Failed to determine the version of mongod you're running.")
             click.echo("Checking the mongo client version instead.")
             p = subprocess.Popen(["mongo", "--version"], stdout=subprocess.PIPE)
             full_verstring = p.communicate()
             if p.returncode != 0:
-                self.error("unable to determine mongo version.")
+                self.error("Unable to determine mongo version.")
                 self.error("""Sorry, but we still couldn't connect to a local mongo.
 This installer only works on the machine running mongo.
 Bailing out.""")
@@ -151,7 +151,7 @@ that you upgrade mongo.
         password = ""
         auth_db = ""
         if p.returncode != 0:
-            self.error("failed to connect to mongo on localhost with no username or password.")
+            self.error("Failed to connect to mongo on localhost with no username or password.")
             click.echo()
         
         while p.returncode != 0:
@@ -173,7 +173,7 @@ that you upgrade mongo.
                 break
         
             click.echo()
-            self.error("failed to connect to mongo on localhost with supplied username or password.")
+            self.error("Failed to connect to mongo on localhost with supplied username or password.")
             click.echo()
 
         return (username, password, auth_db)
