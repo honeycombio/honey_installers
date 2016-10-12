@@ -1,5 +1,6 @@
 import click
 from distutils.version import StrictVersion
+import emoji
 import hashlib
 import logging
 import os
@@ -78,7 +79,7 @@ class HoneyInstaller(object):
         self.debug = debug
 
     def success(self, msg):
-        click.secho(msg, fg="green")
+        click.secho(emoji.emojize(":heavy_check_mark: " + msg), fg="green")
 
     def warn(self, msg):
         click.secho(msg, fg="yellow")
@@ -427,7 +428,7 @@ a query against your new {installer_name} data:
         click.secho(step_message + "...", bold=True)
         
     def start(self):
-        click.secho("Honeytail {} installer {}".format(self.installer_name, get_version()), bold=True, underline=True)
+        click.secho(emoji.emojize(":honeybee: Honeytail {} installer {}".format(self.installer_name, get_version())), bold=True, underline=True)
 
         steps = [
             ("Checking for honeytail", self.check_honeytail),
@@ -442,4 +443,4 @@ a query against your new {installer_name} data:
             self.output_step(i+1, len(steps), steps[i][0])
             steps[i][1]()
 
-        click.echo("Done.")
+        click.echo(emoji.emojize(":sparkles: Done."))
