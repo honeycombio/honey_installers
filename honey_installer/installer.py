@@ -21,8 +21,9 @@ def get_version():
         return "dev"
         
 BACKFILL_AND_TAIL = 1
-ONLY_TAIL = 2
-SHOW_COMMANDS = 3
+ONLY_BACKFILL = 2
+ONLY_TAIL = 3
+SHOW_COMMANDS = 4
  
 HONEYTAIL_VERSION="1.133"
 HONEYTAIL_CHECKSUM = {
@@ -243,6 +244,7 @@ It can also backfill existing logs, which can get you started with more data in 
         click.echo("How would you like to start the data flowing to honeycomb?")
 
         choice = get_choice(["Backfill {} and then switch to tailing".format(self.log_file),
+                             "Only backfill {}".format(self.log_file),
                              "Only tail {}".format(self.log_file),
                              "Show commands and exit"],
                             "Which would you like to do?")
@@ -354,21 +356,26 @@ or add it to system startup scripts.
         subprocess.call(command, shell=True)
 
 
+    def show_backfill_command(self):
+        backfill_lines = self.get_backfill_lines("<LOG_FILE_PATH>")
+        click.echo("To backfill from this or other rotated out logs, you can use this command:")
+        self.print_lines(backfill_lines)
+
+    def show_tail_command(self):
+        tail_lines = self.get_tail_lines(self.log_file)
+        click.echo("To tail and send real-time events from {}, run this command:".format(self.log_file))
+        self.print_lines(tail_lines)
+        
     def show_commands(self):
         """prints out the commands for backfilling and tailing"""
         self.pre_show_commands_hook()
         
-        tail_lines = self.get_tail_lines(self.log_file)
-        backfill_lines = self.get_backfill_lines("<LOG_FILE_PATH>")
-
-        click.echo("To tail and send real-time events from {}, run this command:".format(self.log_file))
-        self.print_lines(tail_lines)
-
+        self.show_tail_command()
         click.echo()
-        click.echo("To backfill from this or other rotated out logs, you can use this command:")
-        self.print_lines(backfill_lines)
-
+        
+        self.show_backfill_command()
         click.echo()
+        
         click.echo("NOTE: if you want to backfill and send real-time events from the same file, backfill first.")
         click.echo()
 
@@ -418,6 +425,10 @@ a query against your new {installer_name} data:
         if mode == BACKFILL_AND_TAIL:
             self.backfill(file_size)
             self.tail(after_backfill=True)
+        elif mode == ONLY_BACKFILL:
+            self.backfill(file_size)
+            self.show_tail_command()
+            click.echo()
         else: # mode == ONLY_TAIL
             self.tail(after_backfill=False)
         
