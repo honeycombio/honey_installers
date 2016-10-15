@@ -294,7 +294,7 @@ It can also backfill existing logs, which can get you started with more data in 
         return map(lambda l: self._format_line(l, honeytail_cmd, log_file), [
             "{honeytail_cmd}",
             """--parser="{parser_module}" {parser_extra_flags}""",
-            "--tail.read_from=beginning --tail.stop --backoff",
+            "--backfill",
             """--writekey="{writekey}" --dataset="{dataset}" """,
             """--file="{log_file}" """
         ])
