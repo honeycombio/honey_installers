@@ -113,6 +113,28 @@ Bailing out.""")
         Suggests changing the profile level of each that's not 2 to 2
         Asks for permission to do so, do so if allowed, print how to do so if not
         """
+
+        p = subprocess.Popen(_auth_mysql_cmd(MYSQL + ["-e", "SELECT @@global.log_output"], username, password),
+                             stdout=subprocess.PIPE)
+        # check the log_output to make sure it's FILE (not TABLE)
+        log_output_target_out = p.communicate()
+        log_output_target = log_output_target_out[0].strip()
+        # log_output_target should be FILE or TABLE or NONE
+        if log_output_target == "TABLE":
+            click.echo("""
+
+We found that the "log_output" variable is set to "TABLE".
+
+The MySQL connector currently only supports sending the slow query log to a
+file. If you are interested in sending the slow query log to Honeycomb from a
+table, please let us know at unicorns@honeycomb.io. We'd love to hear about it.
+
+Please see https://dev.mysql.com/doc/refman/5.7/en/log-destinations.html for
+more detail about the log_output variable and log file destinations.
+
+Aborting...""")
+            sys.exit(1)
+
         p = subprocess.Popen(_auth_mysql_cmd(MYSQL + ["-e", "SELECT @@global.slow_query_log"], username, password),
                              stdout=subprocess.PIPE)
         # check the slow_query_log enabled flag
@@ -127,7 +149,7 @@ Bailing out.""")
         long_query_time = float(long_query_time_out[0].strip())
         # long_query_time should be a float in seconds.
 
-        if slow_log_state != 1 or long_query_time != 0.0:
+        if slow_log_state != 1 or long_query_time != 0.0 or log_output_target != "FILE":
             # we need to update one or both
             click.echo("""
 We suggest enabling the slow query log and lowering the threshold for which
@@ -138,6 +160,7 @@ If you agree, we'll run:
 
     SET @@global.slow_query_log = 'ON';
     SET @@global.long_query_time = 0;
+    SET @@global.log_output = 'FILE';
 """)
             if click.confirm("Should we set the slow query log (Y) or skip it and continue (n)?", default=True):
                 failed = False
@@ -149,6 +172,10 @@ If you agree, we'll run:
                 if res != 0:
                     failed = True
                     click.echo("Failed to set long_query_time to 0.")
+                res = subprocess.call(_auth_mysql_cmd(MYSQL + ["-e", "SET @@global.log_output = 'FILE'"], username, password))
+                if res != 0:
+                    failed = True
+                    click.echo("Failed to set log_output to FILE.")
                 if failed:
                     click.echo("""
 We'll continue to set up honeytail, but you should consider making changes to
@@ -163,8 +190,9 @@ anytime.
 And/or update your my.cnf with the following to turn on slow query logging
 permanently:
 
-    slow_query_log = 1;
-    long_query_time = 0.0;
+    slow_query_log = 1
+    long_query_time = 0.0
+    log_output = FILE
 """)
                 else:
                     click.echo("""
@@ -175,8 +203,9 @@ slow query log/query threshold parameters.
 The location of my.cnf varies by OS, but is often found near /etc/mysql/my.cnf
 Add the following to your config:
 
-    slow_query_log = 1;
-    long_query_time = 0.0;
+    slow_query_log = 1
+    long_query_time = 0.0
+    log_output = FILE
 
 After saving your changes, restart your MySQL instance.
 """)
