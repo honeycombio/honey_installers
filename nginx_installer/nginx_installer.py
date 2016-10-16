@@ -61,7 +61,7 @@ class NginxInstaller(HoneyInstaller):
 
     def pre_backfill_hook(self):
         self.parser_extra_flags = self.parser_extra_flags_format.format(nginx_conf=self.nginx_conf, log_format=self.log_format)
-        
+
     def pre_tail_hook(self, after_backfill):
         self.parser_extra_flags = self.parser_extra_flags_format.format(nginx_conf=self.nginx_conf, log_format=self.log_format)
 
@@ -73,41 +73,41 @@ Please make a copy:
     cp {} ~/
 
 When you're ready to backfill, use the following command""".format(self.nginx_conf))
-        home_conf = "~/{}".format(os.path.basename(self.nginx_conf))
-        self.print_lines(map(lambda line: line.replace(self.nginx_conf, home_conf), self.get_backfill_lines()))
-        click.echo()
-        
+            home_conf = "~/{}".format(os.path.basename(self.nginx_conf))
+            self.print_lines(map(lambda line: line.replace(self.nginx_conf, home_conf), self.get_backfill_lines(self.log_filename)))
+            click.echo()
+
     def pre_show_commands_hook(self):
         self.parser_extra_flags = self.parser_extra_flags_format.format(nginx_conf=self.nginx_conf, log_format=self.log_format)
-        
+
     def find_log_file(self):
         conf_loc = self._find_nginx_conf(self.nginx_conf)
 
-        found_logs, log_formats = _parse_nginx(conf_loc, self.debug)
+        found_logs, log_formats = self._parse_nginx(conf_loc, self.debug)
 
         # We can largely assume good formatting, if nginx accepts it, we should be in good shape.
         if self.log_filename and self.log_format:
             access_log_format = self.log_format
             access_log_name = self.log_filename
         else:
-            access_log_name, access_log_format = _get_access_log(found_logs, conf_loc, self.log_filename, self.log_format)
-        
+            access_log_name, access_log_format = self._get_access_log(found_logs, conf_loc, self.log_filename, self.log_format)
+
         ## Check the log_format and give recommendations
-        nginx_version = _get_nginx_version()
+        nginx_version = self._get_nginx_version()
         if not log_formats:
             log_formats.append(["log_format", 'combined \'$remote_addr - $remote_user [$time_local] "$request" $status $body_bytes_sent "$http_referer" "$http_user_agent"\''])
             click.echo("It looks like you're using the default nginx configuration.")
             click.echo("""The defaults are great, but your logs will be even more powerful with more data!
 We'll show you how, after you get a chance to backfill any existing logs.""")
 
-        _give_log_recs(conf_loc, access_log_format, access_log_name, log_formats, nginx_version)
+        self._give_log_recs(conf_loc, access_log_format, access_log_name, log_formats, nginx_version)
 
         # ugly side effects here
         self.log_format = access_log_format
         self.nginx_conf = conf_loc
-        
+
         click.echo()
-        
+
         return access_log_name
 
     def _find_nginx_conf(self, conf_loc=None):
@@ -270,7 +270,7 @@ We'll return a list of variables to add to your log_format line.
         click.echo("For reference, your current format is:")
         click.echo("    {}".format(full_format))
         click.echo()
-        if not click.confirm("Ready to see what you're missing?", default="Y"):
+        if not click.confirm("Ready to see what you're missing? ('n' to abort)", default="Y"):
             click.echo("Ok, aborting.")
             sys.exit(0)
 

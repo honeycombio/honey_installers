@@ -13,23 +13,19 @@ import subprocess
 import sys
 import urllib
 
+from honeytail_version import (HONEYTAIL_VERSION, HONEYTAIL_CHECKSUM)
+
 def get_version():
     try:
         from honey_installer_version import version
         return version
     except:
         return "dev"
-        
+
 BACKFILL_AND_TAIL = 1
 ONLY_BACKFILL = 2
 ONLY_TAIL = 3
 SHOW_COMMANDS = 4
- 
-HONEYTAIL_VERSION="1.133"
-HONEYTAIL_CHECKSUM = {
-    "Linux": "530c16d09086d1db91ae8d101553162a22e7536066a29f34156fb25f97500dc7",
-    "Darwin": "ae422f42d133f876db1a3d766c79df12ea23dc2a06937639a4dc20ac2cd059c1"
-}.get(platform.system(), None)
 
 HONEYTAIL_URL = {
     "Linux": "https://honeycomb.io/download/honeytail/linux/"+HONEYTAIL_VERSION,
@@ -87,7 +83,7 @@ class HoneyInstaller(object):
 
     def error(self, msg):
         click.secho(msg, fg="red")
-        
+
     def check_honeytail(self):
         """make sure we have a usable honeytail.  will use the user-supplied
         executable if its version is >= HONEYTAIL_VERSION.  Otherwise, fetches
@@ -103,13 +99,13 @@ class HoneyInstaller(object):
 
             self.honeytail_loc = self.fetch_honeytail()
             return
-        
+
         existing_version, existing_newer = self.check_honeytail_version()
         if existing_newer:
             self.success("Found usable honeytail binary (version {})".format(existing_version))
             click.echo()
             return
-        
+
         if self.honeytail_loc != "honeytail":
             click.echo("Honeytail version at {} is too old ({}).".format(self.honeytail_loc, existing_version))
             click.echo("Downloading new version ({}) to ./honeytail.".format(HONEYTAIL_VERSION))
@@ -192,14 +188,14 @@ https://honeycomb.io/docs/send-data/agent/""".format(installer_name=self.install
             os.chmod(dest, stat.S_IRWXU | stat.S_IXGRP | stat.S_IXOTH | stat.S_IRGRP | stat.S_IROTH)
 
         click.echo()
-        
+
         return dest
-        
+
 
     def get_user_agent(self):
         return "{installer_name}-installer/{installer_version}".format(installer_name=self.installer_name, installer_version=self.installer_version)
 
-    
+
     def get_team_slug(self):
         """calls out to Honeycomb to turn the writekey into the slug necessary to
         form the URL straight in to the dataset in the UI"""
@@ -213,13 +209,13 @@ https://honeycomb.io/docs/send-data/agent/""".format(installer_name=self.install
         self.success("Great, found your team: {}".format(team_slug))
         return team_slug
 
-        
+
     def prompt_for_writekey_and_dataset(self):
         if self.writekey == "":
             self.writekey = click.prompt("What is your Honeycomb Write Key? (Available at https://ui.honeycomb.io/account)")
 
         self.team_slug = self.get_team_slug()
-            
+
         if self.dataset == self.default_dataset:
             self.dataset = click.prompt("Which Honeycomb dataset should we send events to? (It'll be created if it doesn't already exist)", default=self.default_dataset)
 
@@ -299,14 +295,14 @@ It can also backfill existing logs, which can get you started with more data in 
             """--file="{log_file}" """
         ])
 
-    
+
     def backfill(self, file_size):
         """run honeytail against an existing log"""
 
         self.pre_backfill_hook()
-            
+
         backfill_lines = self.get_backfill_lines(self.log_file)
-        
+
         backfill_command = " ".join(backfill_lines)
 
         if self.debug:
@@ -314,7 +310,7 @@ It can also backfill existing logs, which can get you started with more data in 
 
         click.echo("Backfilling by running the following command:")
         self.print_lines(backfill_lines)
-        
+
         click.echo("""
 Feel free to run the above command after replacing the --file argument with other,
 rotated log files in order to backfill more data. You can run the command at any time.""")
@@ -333,7 +329,7 @@ rotated log files in order to backfill more data. You can run the command at any
         self.pre_tail_hook(after_backfill)
 
         tail_lines = self.get_tail_lines(self.log_file)
-        
+
         command = " ".join(tail_lines)
 
         if self.debug:
@@ -343,7 +339,7 @@ rotated log files in order to backfill more data. You can run the command at any
             msg = "Switching to real-time events by running the following command"
         else:
             msg = "Sending real-time events by running the following command"
-        
+
         click.echo(msg)
         self.print_lines(tail_lines)
 
@@ -365,18 +361,18 @@ or add it to system startup scripts.
         tail_lines = self.get_tail_lines(self.log_file)
         click.echo("To tail and send real-time events from {}, run this command:".format(self.log_file))
         self.print_lines(tail_lines)
-        
+
     def show_commands(self):
         """prints out the commands for backfilling and tailing"""
         self.pre_show_commands_hook()
-        
+
         self.show_tail_command()
         click.echo()
-        
+
         self.show_backfill_command()
         click.echo()
-        
-        click.echo("NOTE: if you want to backfill and send real-time events from the same file, backfill first.")
+
+        click.echo("NOTE: If you want to backfill and send real-time events from the same file, backfill first.")
         click.echo()
 
 
@@ -414,14 +410,14 @@ or add it to system startup scripts.
         if mode == SHOW_COMMANDS:
             self.show_commands()
             return
-        
+
         click.echo("""
 Congratulations! You've set up honeytail to ingest your {installer_name} logs. Try running
 a query against your new {installer_name} data:
 
     https://ui.honeycomb.io/{team_slug}/datasets/{dataset}
 """.format(installer_name=self.installer_name, team_slug=self.team_slug, dataset=urllib.quote(self.dataset.lower())))
-        
+
         if mode == BACKFILL_AND_TAIL:
             self.backfill(file_size)
             self.tail(after_backfill=True)
@@ -431,13 +427,13 @@ a query against your new {installer_name} data:
             click.echo()
         else: # mode == ONLY_TAIL
             self.tail(after_backfill=False)
-        
-    
+
+
     def output_step(self, step_number, step_count, step_message):
         click.echo()
         click.secho("[{}/{}] ".format(step_number, step_count), dim=True, nl=False)
         click.secho(step_message + "...", bold=True)
-        
+
     def start(self):
         click.secho(emoji.emojize(":honeybee: Honeytail {} installer {}".format(self.installer_name, get_version())), bold=True, underline=True)
 
@@ -448,7 +444,7 @@ a query against your new {installer_name} data:
             ("Locating log file", self.locate_log_file),
             ("Backfilling/tailing", self.backfill_and_tail)
         ]
-    
+
 
         for i in xrange(0, len(steps)):
             self.output_step(i+1, len(steps), steps[i][0])
