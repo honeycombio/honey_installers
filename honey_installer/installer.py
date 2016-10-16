@@ -213,7 +213,13 @@ https://honeycomb.io/docs/send-data/agent/""".format(installer_name=self.install
     def prompt_for_writekey_and_dataset(self):
         if self.writekey == "":
             self.writekey = click.prompt("What is your Honeycomb Write Key? (Available at https://ui.honeycomb.io/account)")
-
+        self.writekey = self.writekey.strip()
+        if not re.match('^[a-f0-9]+$', self.writekey):
+            click.echo("Write Key {} contains unexpected characters - it should be a 32 character hexadecimal string. Please try again.".format(self.writekey))
+            sys.exit(1)
+        if len(self.writekey) != 32:
+            click.echo("Write Key {} is not the expected length - it should be a 32 character hexadecimal string. Please try again.".format(self.writekey))
+            sys.exit(1)
         self.team_slug = self.get_team_slug()
 
         if self.dataset == self.default_dataset:

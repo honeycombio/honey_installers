@@ -199,7 +199,7 @@ honeytail might not pick up new queries flowing through your MySQL instance.
         if self.password != "":
             extra_flags += " --mysql.pass={}".format(self.password)
         self.parser_extra_flags = extra_flags
-        
+
     def pre_tail_hook(self, after_backfill):
         extra_flags = ""
         if self.username != "":
@@ -210,10 +210,9 @@ honeytail might not pick up new queries flowing through your MySQL instance.
 
         if not after_backfill:
             click.echo("""
-In order to backfill later, use the following command:
-""")
+In order to backfill later, use the following command:""")
             self.print_lines(self.get_backfill_lines(self.log_file))
-        
+            click.echo()
 
 @click.command()
 @click.option("--writekey", "-k", help="Your Honeycomb Writekey", default="")
