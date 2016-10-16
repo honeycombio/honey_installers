@@ -88,7 +88,7 @@ class MongoInstaller(HoneyInstaller):
         super(MongoInstaller, self).__init__(INSTALLER_NAME, INSTALLER_VERSION, PARSER_MODULE, "--mongo.log_partials", writekey, dataset, DEFAULT_DATASET, honeytail, debug)
         self.log_filename = log_filename
 
-    
+
     def fixup_and_suggest(self):
         # check the mongo version, suggest upgrading if too old
         version = self._check_mongo_version()
@@ -153,7 +153,7 @@ that you upgrade mongo.
         if p.returncode != 0:
             self.error("Failed to connect to mongo on localhost with no username or password.")
             click.echo()
-        
+
         while p.returncode != 0:
             # we failed to connect to mongo. let's ask for connection details
             choice = get_choice(["Enter connection details for your local mongo",
@@ -171,7 +171,7 @@ that you upgrade mongo.
             p.communicate("show dbs")
             if p.returncode == 0:
                 break
-        
+
             click.echo()
             self.error("Failed to connect to mongo on localhost with supplied username or password.")
             click.echo()
@@ -225,6 +225,11 @@ that you upgrade mongo.
             for db in dbs_to_change:
                 click.echo("\t{}".format(db))
             click.echo()
+            click.echo("If you agree, we'll run:")
+            click.echo()
+            click.echo("\tdb.setProfilingLevel(2, -1)")
+            click.echo()
+
             # change logging level if we're allowed
             if click.confirm("Would you like us to enable full query logging on these databases?", default=True):
                 click.echo()
@@ -252,7 +257,7 @@ that you upgrade mongo.
                 log_file = self.log_filename
 
         return log_file
-    
+
 @click.command()
 @click.option("--writekey", "-k", help="Your Honeycomb Writekey", default="")
 @click.option("--dataset", "-d", help="Your Honeycomb Dataset", default=DEFAULT_DATASET)
