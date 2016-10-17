@@ -32,12 +32,13 @@ esac
 echo fetching linux honeytail
 curl -s -L -o $TOP/honeytail.linux https://honeycomb.io/download/honeytail/linux/$honeytail_version
 
-echo fetching osx honeytail
-curl -s -L -o $TOP/honeytail.darwin https://honeycomb.io/download/honeytail/darwin/$honeytail_version
+#echo fetching osx honeytail
+#curl -s -L -o $TOP/honeytail.darwin https://honeycomb.io/download/honeytail/darwin/$honeytail_version
 
 echo generating sha256s
 linux_sha256=$($SHA256SUM $TOP/honeytail.linux | cut -d' ' -f 1)
-darwin_sha256=$($SHA256SUM $TOP/honeytail.darwin | cut -d' ' -f 1)
+#darwin_sha256=$($SHA256SUM $TOP/honeytail.darwin | cut -d' ' -f 1)
+darwin_sha256=
 
 echo updating honeytail_version.py
 cat <<EOF > $TOP/honey_installer/honeytail_version.py
@@ -47,7 +48,7 @@ import platform
 HONEYTAIL_VERSION="$honeytail_version"
 HONEYTAIL_CHECKSUM = {
     "Linux": "$linux_sha256",
-    "Darwin": "$darwin_sha256"
+    #"Darwin": "$darwin_sha256"
 }.get(platform.system(), None)
 EOF
 

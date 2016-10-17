@@ -29,7 +29,7 @@ SHOW_COMMANDS = 4
 
 HONEYTAIL_URL = {
     "Linux": "https://honeycomb.io/download/honeytail/linux/"+HONEYTAIL_VERSION,
-    "Darwin": "https://honeycomb.io/download/honeytail/darwin/"+HONEYTAIL_VERSION
+    #"Darwin": "https://honeycomb.io/download/honeytail/darwin/"+HONEYTAIL_VERSION
 }.get(platform.system(), None)
 
 
