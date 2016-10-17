@@ -4,4 +4,4 @@
 
 This repo builds installers for MySQL, MongoDB, and NGINX. See the README in each of the `*_installer` directories for more detail on each individual installer.
 
-For build instructions, see CONTTRIBUTING.md
+For build instructions, see CONTRIBUTING.md
