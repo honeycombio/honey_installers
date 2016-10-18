@@ -204,6 +204,7 @@ https://honeycomb.io/docs/send-data/agent/""".format(installer_name=self.install
         resp = requests.get(TEAM_URL, headers=headers)
         if resp.status_code != 200:
             self.error("There was an error resolving your Team Name. Please verify your write key and try again, or let us know what happened.")
+            self.error("\t" + resp.text)
             sys.exit(1)
         team_slug = resp.json()["team_slug"]
         self.success("Great, found your team: {}".format(team_slug))
