@@ -204,6 +204,14 @@ We'll show you how, after you get a chance to backfill any existing logs.""")
             else:
                 log_filename = "/var/log/nginx/access.log"
                 click.echo("We'll start by using the default log location of {}".format(log_filename))
+            if not os.path.isfile(log_filename):
+                self.error("We tried to guess the location of your logs and failed!\n")
+                self.error("It looks like they're not at %s ; please hunt for your nginx logs, specify them via --file, and try again.")
+            sys.exit()
+        elif not os.path.isfile(log_filename):
+            self.error("It doesn't look like the file you specified via --file exists.\n")
+            self.error("Please check that file location and try again.")
+            sys.exit()
 
         # Turn a relative path into an absolute path
         if log_filename[0] != "/":
