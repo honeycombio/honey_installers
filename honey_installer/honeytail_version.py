@@ -1,8 +1,8 @@
 # generated file - do not edit
 # instead update ../update_honeytail.sh
 import platform
-HONEYTAIL_VERSION="1.192"
+HONEYTAIL_VERSION="1.200"
 HONEYTAIL_CHECKSUM = {
-    "Linux": "0cc29891cb67570cd1973f697f248b86c67229f7b888d14743551de24a819537",
+    "Linux": "daf4da2f2a55fca9d1bf413e0c8d66d36e8a046f7c382a2a29e0940e52c234bd",
     #"Darwin": ""
 }.get(platform.system(), None)
