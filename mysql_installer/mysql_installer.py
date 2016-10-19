@@ -26,8 +26,7 @@ def _auth_mysql_cmd(cmd, username, password):
         cmd.append("--user")
         cmd.append(username)
     if password != "":
-        cmd.append("--password")
-        cmd.append(password)
+        cmd.append("--password="+password)
     return cmd
 
 
@@ -71,7 +70,7 @@ class MysqlInstaller(HoneyInstaller):
         cmd += MYSQL
         cmd += ["--user", username]
         if password != "":
-            cmd += ["--password", password]
+            cmd += ["--password="+password]
         cmd += ["-e", "SELECT 1"]
 
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
@@ -95,7 +94,7 @@ class MysqlInstaller(HoneyInstaller):
             # we're going to ask for details and try again
             username = click.prompt("username for mysql")
             password = click.prompt("password for mysql", hide_input=True)
-            p = subprocess.Popen(MYSQL + ["--user", username, "--password", password, "-e", "SELECT 1"], stdout=subprocess.PIPE)
+            p = subprocess.Popen(MYSQL + ["--user", username, "--password="+password, "-e", "SELECT 1"], stdout=subprocess.PIPE)
             p.communicate()
             if p.returncode != 0:
                 self.error("""Sorry, but we still couldn't connect to a local mysql.
