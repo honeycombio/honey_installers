@@ -161,7 +161,7 @@ We'll show you how, after you get a chance to backfill any existing logs.""")
                 if isinstance(item, str):
                     if item == "log_format":
                         found_formats.append(parsed)
-                    if item == "access_log":
+                    if item == "access_log" and "off" not in parsed:
                         found_logs.append(parsed)
             return found_formats, found_logs
 
