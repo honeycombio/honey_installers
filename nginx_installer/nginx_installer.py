@@ -161,7 +161,7 @@ We'll show you how, after you get a chance to backfill any existing logs.""")
                 if isinstance(item, str):
                     if item == "log_format":
                         found_formats.append(parsed)
-                    if item == "access_log":
+                    if item == "access_log" and "off" not in parsed:
                         found_logs.append(parsed)
             return found_formats, found_logs
 
@@ -201,9 +201,23 @@ We'll show you how, after you get a chance to backfill any existing logs.""")
                     log_format_name = log_parts[1]
                 else:
                     log_format_name = "combined"
+
+                if not os.path.isfile(log_filename):
+                    self.error("\nArgh! We tried to guess the location for logs for the '{}' format and failed.".format(log_format_name))
+                    self.error("It looks like they're not at {} like we hoped.".format(log_filename))
+                    self.error("Once you find your nginx logs, specify them via --file, and try again.")
+                    sys.exit()
             else:
                 log_filename = "/var/log/nginx/access.log"
                 click.echo("We'll start by using the default log location of {}".format(log_filename))
+                if not os.path.isfile(log_filename):
+                    self.error("\nArgh! Looks like they're not at the default location.")
+                    self.error("Once you find your nginx logs, specify them via --file, and try again.".format(log_filename))
+                    sys.exit()
+        elif not os.path.isfile(log_filename):
+            self.error("\nIt doesn't look like the file you specified exists: {}".format(log_filename))
+            self.error("Please check your --file argument and try again.")
+            sys.exit()
 
         # Turn a relative path into an absolute path
         if log_filename[0] != "/":
@@ -324,7 +338,7 @@ hit Enter to continue, 'n' to abort""", default=True):
 @click.version_option(INSTALLER_VERSION)
 def start(writekey, dataset, log_filename, nginx_conf, nginx_format, honeytail, debug):
 
-    installer = NginxInstaller(writekey, dataset, honeytail, log_filename, debug, nginx_conf, nginx_format)
+    installer = NginxInstaller(writekey, dataset, honeytail, debug, log_filename, nginx_conf, nginx_format)
     installer.start()
 
 
