@@ -12,6 +12,7 @@ import stat
 import subprocess
 import sys
 import urllib
+import curses
 
 from honeytail_version import (HONEYTAIL_VERSION, HONEYTAIL_CHECKSUM)
 
