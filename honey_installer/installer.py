@@ -12,7 +12,6 @@ import stat
 import subprocess
 import sys
 import urllib
-import curses
 
 from honeytail_version import (HONEYTAIL_VERSION, HONEYTAIL_CHECKSUM)
 
@@ -30,11 +29,22 @@ SHOW_COMMANDS = 4
 
 HONEYTAIL_URL = {
     "Linux": "https://honeycomb.io/download/honeytail/linux/"+HONEYTAIL_VERSION,
-    #"Darwin": "https://honeycomb.io/download/honeytail/darwin/"+HONEYTAIL_VERSION
+    "Darwin": "https://honeycomb.io/download/honeytail/darwin/"+HONEYTAIL_VERSION
 }.get(platform.system(), None)
 
 
 TEAM_URL = "https://api.honeycomb.io/1/team_slug"
+
+def Popen(args, **kwargs):
+    env = None
+    if 'env' in kwargs:
+        env = kwargs[env]
+    if env is None:
+        env = os.environ
+
+    env = {k:v for k,v in os.environ.iteritems() if k != 'LD_LIBRARY_PATH' and k != 'DYLD_LIBRARY_PATH'}
+    kwargs['env'] = env
+    return subprocess.Popen(args, **kwargs)
 
 def get_choice(choices, prompt):
     while True:

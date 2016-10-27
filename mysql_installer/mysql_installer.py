@@ -8,7 +8,7 @@ import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.basename(__file__), "..")))
 
-from honey_installer import (HoneyInstaller, get_choice, get_version)
+from honey_installer import (HoneyInstaller, get_choice, get_version, Popen)
 
 INSTALLER_NAME = "MySQL"
 INSTALLER_VERSION = get_version() + "-" + platform.system().lower()
@@ -33,8 +33,8 @@ def _auth_mysql_cmd(cmd, username, password):
 def _find_log_file(username, password):
     """asks mysql for the location of the slow query log.
     """
-    p = subprocess.Popen(_auth_mysql_cmd(MYSQL + ["-e", "SELECT @@global.slow_query_log_file"], username, password),
-                         stdout=subprocess.PIPE)
+    p = Popen(_auth_mysql_cmd(MYSQL + ["-e", "SELECT @@global.slow_query_log_file"], username, password),
+              stdout=subprocess.PIPE)
     # ask for a list of databases
     slow_query_log_out = p.communicate()
     slow_query_log_file = slow_query_log_out[0].strip()
@@ -73,7 +73,7 @@ class MysqlInstaller(HoneyInstaller):
             cmd += ["--password="+password]
         cmd += ["-e", "SELECT 1"]
 
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        p = Popen(cmd, stdout=subprocess.PIPE)
         # throw out the result, just care that we could do it
         p.communicate()
         # see if it worked
@@ -94,7 +94,7 @@ class MysqlInstaller(HoneyInstaller):
             # we're going to ask for details and try again
             username = click.prompt("username for mysql")
             password = click.prompt("password for mysql", hide_input=True)
-            p = subprocess.Popen(MYSQL + ["--user", username, "--password="+password, "-e", "SELECT 1"], stdout=subprocess.PIPE)
+            p = Popen(MYSQL + ["--user", username, "--password="+password, "-e", "SELECT 1"], stdout=subprocess.PIPE)
             p.communicate()
             if p.returncode != 0:
                 self.error("""Sorry, but we still couldn't connect to a local mysql.
@@ -111,8 +111,8 @@ Bailing out.""")
         Asks for permission to do so, do so if allowed, print how to do so if not
         """
 
-        p = subprocess.Popen(_auth_mysql_cmd(MYSQL + ["-e", "SELECT @@global.log_output"], username, password),
-                             stdout=subprocess.PIPE)
+        p = Popen(_auth_mysql_cmd(MYSQL + ["-e", "SELECT @@global.log_output"], username, password),
+                  stdout=subprocess.PIPE)
         # check the log_output to make sure it's FILE (not TABLE)
         log_output_target_out = p.communicate()
         log_output_target = log_output_target_out[0].strip()
@@ -132,15 +132,15 @@ more detail about the log_output variable and log file destinations.
 Aborting...""")
             sys.exit(1)
 
-        p = subprocess.Popen(_auth_mysql_cmd(MYSQL + ["-e", "SELECT @@global.slow_query_log"], username, password),
-                             stdout=subprocess.PIPE)
+        p = Popen(_auth_mysql_cmd(MYSQL + ["-e", "SELECT @@global.slow_query_log"], username, password),
+                  stdout=subprocess.PIPE)
         # check the slow_query_log enabled flag
         slow_log_out = p.communicate()
         slow_log_state = int(slow_log_out[0].strip())
         # slow_log_state should be 0 (disabled) or 1 (enabled)
 
-        p = subprocess.Popen(_auth_mysql_cmd(MYSQL + ["-e", "SELECT @@global.long_query_time"], username, password),
-                             stdout=subprocess.PIPE)
+        p = Popen(_auth_mysql_cmd(MYSQL + ["-e", "SELECT @@global.long_query_time"], username, password),
+                  stdout=subprocess.PIPE)
         # check the slow_query_log threshold
         long_query_time_out = p.communicate()
         long_query_time = float(long_query_time_out[0].strip())

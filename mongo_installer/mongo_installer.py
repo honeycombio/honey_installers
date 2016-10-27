@@ -11,7 +11,7 @@ import yaml
 
 sys.path.append(os.path.abspath(os.path.join(os.path.basename(__file__), "..")))
 
-from honey_installer import (HoneyInstaller, get_choice, get_version)
+from honey_installer import (HoneyInstaller, get_choice, get_version, Popen)
 
 INSTALLER_NAME = "mongo"
 INSTALLER_VERSION = get_version() + "-" + platform.system().lower()
@@ -64,7 +64,7 @@ def _find_log_file():
                     break
                 except (KeyError, TypeError, yaml.YAMLError):
                     # failed to open it as yaml, let's try grep
-                    p = subprocess.Popen(["grep", "^ *logpath", config_file], stdout=subprocess.PIPE)
+                    p = Popen(["grep", "^ *logpath", config_file], stdout=subprocess.PIPE)
                     logpath_line = p.communicate()
                     try:
                         logpath = logpath_line[0].strip().split("=")[1]
@@ -105,12 +105,12 @@ class MongoInstaller(HoneyInstaller):
     def _check_mongo_version(self):
         """check the version of mongo they're running. Suggest upgrading if 2.4.
         return the version number for later use."""
-        p = subprocess.Popen(["mongod", "--version"], stdout=subprocess.PIPE)
+        p = Popen(["mongod", "--version"], stdout=subprocess.PIPE)
         full_verstring = p.communicate()
         if p.returncode != 0:
             self.error("Failed to determine the version of mongod you're running.")
             click.echo("Checking the mongo client version instead.")
-            p = subprocess.Popen(["mongo", "--version"], stdout=subprocess.PIPE)
+            p = Popen(["mongo", "--version"], stdout=subprocess.PIPE)
             full_verstring = p.communicate()
             if p.returncode != 0:
                 self.error("Unable to determine mongo version.")
@@ -143,7 +143,7 @@ that you upgrade mongo.
         If it fails, asks for mongo connection creds"""
         click.echo("Connecting to local mongo to check logging levels")
         # connect to mongo
-        p = subprocess.Popen(["mongo", "--quiet"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        p = Popen(["mongo", "--quiet"], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         # ask for a list of databases
         p.communicate("show dbs")
         # see if it worked
@@ -167,7 +167,7 @@ that you upgrade mongo.
             username = click.prompt("  Mongo username")
             password = click.prompt("  Mongo password", hide_input=True)
             auth_db = click.prompt("  Mongo authentication database", default="admin")
-            p = subprocess.Popen(["mongo", "--quiet", "--username", username, "--password", password, "--authenticationDatabase", auth_db], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            p = Popen(["mongo", "--quiet", "--username", username, "--password", password, "--authenticationDatabase", auth_db], stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             p.communicate("show dbs")
             if p.returncode == 0:
                 break
@@ -184,8 +184,8 @@ that you upgrade mongo.
         Suggests changing the profile level of each that's not 2 to 2
         Asks for permission to do so, do so if allowed, print how to do so if not
         """
-        p = subprocess.Popen(_auth_mongo_cmd(["mongo", "--quiet"], username, password, auth_db),
-                             stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        p = Popen(_auth_mongo_cmd(["mongo", "--quiet"], username, password, auth_db),
+                  stdin=subprocess.PIPE, stdout=subprocess.PIPE)
         # ask for a list of databases
         dblist = p.communicate("show dbs")
         # dblist is now a tuple that looks like this:
@@ -200,8 +200,8 @@ that you upgrade mongo.
         # for each db, let's get the logging level.
         db_levels = dict()
         for db in dbs:
-            p = subprocess.Popen(_auth_mongo_cmd(["mongo", db, "--quiet"], username, password, auth_db),
-                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+            p = Popen(_auth_mongo_cmd(["mongo", db, "--quiet"], username, password, auth_db),
+                      stdin=subprocess.PIPE, stdout=subprocess.PIPE)
             log_level = p.communicate("db.getProfilingStatus()")
             try:
                 pstatus = json.loads(log_level[0].strip())
@@ -235,8 +235,8 @@ that you upgrade mongo.
                 click.echo()
                 for db in dbs_to_change:
                     click.echo("running db.setProfilingLevel(2, -1) on {} database to enable full logging...".format(db))
-                    p = subprocess.Popen(_auth_mongo_cmd(["mongo", db, "--quiet"], username, password, auth_db),
-                                         stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+                    p = Popen(_auth_mongo_cmd(["mongo", db, "--quiet"], username, password, auth_db),
+                              stdin=subprocess.PIPE, stdout=subprocess.PIPE)
                     log_level = p.communicate("db.setProfilingLevel(2, -1)")
                 self.success("Full query logging enabled")
                 click.echo()
