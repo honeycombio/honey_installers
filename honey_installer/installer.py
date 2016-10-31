@@ -36,6 +36,9 @@ HONEYTAIL_URL = {
 TEAM_URL = "https://api.honeycomb.io/1/team_slug"
 
 def Popen(args, **kwargs):
+    # this env hack is because pinstallers creates its own LD_LIBRARY_PATH
+    # which, when the script is run on a different linux distro, fails to load
+    # some libraries. This unsets it and gets around that problem.
     env = None
     if 'env' in kwargs:
         env = kwargs[env]
@@ -44,7 +47,12 @@ def Popen(args, **kwargs):
 
     env = {k:v for k,v in os.environ.iteritems() if k != 'LD_LIBRARY_PATH' and k != 'DYLD_LIBRARY_PATH'}
     kwargs['env'] = env
-    return subprocess.Popen(args, **kwargs)
+    try:
+        p = subprocess.Popen(args, **kwargs)
+    except OSError as e:
+        click.echo("Failed to run {}: {}".format(args, e))
+        sys.exit(1)
+    return p
 
 def get_choice(choices, prompt):
     while True:
