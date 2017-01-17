@@ -144,6 +144,8 @@ class HoneyInstaller(object):
             verstring = subprocess.check_output([honeytail_cmd, "--version"], stderr=subprocess.STDOUT)
 
             verstring = re.sub(r'Honeytail version', '', verstring).strip()
+            if verstring == "dev":
+                return verstring, True
             return verstring, StrictVersion(verstring) >= StrictVersion(HONEYTAIL_VERSION)
         except OSError:
             return "unknown", False

@@ -279,6 +279,8 @@ Honeycomb works best with lots of fields, and nginx has a great set of
 extra fields available out of the box. Let's take a look at your config to see
 if you're missing anything useful.
 
+Make sure to properly quote any HTTP header fields (those starting with $http_)
+
 We'll return a list of variables to add to your log_format line.
 """)
         click.echo("For reference, your current format is:")
@@ -296,7 +298,9 @@ We'll return a list of variables to add to your log_format line.
         for var, ver_mess in MESSAGES.iteritems():
             version, message = ver_mess
             if var not in full_format and semver.compare(nginx_version, version) >= 0:
-                click.secho("    {:<24}".format(var), bold=True, nl=False)
+                if var.startswith("$http_"):
+                    var = "\"{}\"".format(var)
+                click.secho("    {:<26}".format(var), bold=True, nl=False)
                 click.echo(": {}".format(message))
                 vars_to_add.append(var)
         click.echo("-" * 80)
