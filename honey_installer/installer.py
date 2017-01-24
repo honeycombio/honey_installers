@@ -35,9 +35,9 @@ HONEYTAIL_URL = {
 
 TEAM_URL = "https://api.honeycomb.io/1/team_slug"
 
-    # this env hack is because pinstallers creates its own LD_LIBRARY_PATH
-    # which, when the script is run on a different linux distro, fails to load
-    # some libraries. This unsets it and gets around that problem.
+# this env hack is because pyinstallers creates its own LD_LIBRARY_PATH
+# which, when the script is run on a different linux distro, fails to load
+# some libraries. This unsets it and gets around that problem.
 def replace_subprocess_env(**kwargs):
     env = None
     if 'env' in kwargs:
