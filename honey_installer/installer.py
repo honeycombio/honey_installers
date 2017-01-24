@@ -35,10 +35,10 @@ HONEYTAIL_URL = {
 
 TEAM_URL = "https://api.honeycomb.io/1/team_slug"
 
-def Popen(args, **kwargs):
     # this env hack is because pinstallers creates its own LD_LIBRARY_PATH
     # which, when the script is run on a different linux distro, fails to load
     # some libraries. This unsets it and gets around that problem.
+def replace_subprocess_env(**kwargs):
     env = None
     if 'env' in kwargs:
         env = kwargs[env]
@@ -47,12 +47,19 @@ def Popen(args, **kwargs):
 
     env = {k:v for k,v in os.environ.iteritems() if k != 'LD_LIBRARY_PATH' and k != 'DYLD_LIBRARY_PATH'}
     kwargs['env'] = env
+
+def Popen(args, **kwargs):
     try:
+        replace_subprocess_env(**kwargs)
         p = subprocess.Popen(args, **kwargs)
     except OSError as e:
         click.echo("Failed to run {}: {}".format(args, e))
         sys.exit(1)
     return p
+
+def check_output(args, **kwargs):
+    replace_subprocess_env(**kwargs)
+    return subprocess.check_output(args, **kwargs)
 
 def get_choice(choices, prompt):
     while True:
@@ -141,7 +148,7 @@ class HoneyInstaller(object):
         where version_newer is True if version_string compares >= to HONEYTAIL_VERSION."""
         honeytail_cmd = os.path.abspath(self.honeytail_loc)
         try:
-            verstring = subprocess.check_output([honeytail_cmd, "--version"], stderr=subprocess.STDOUT)
+            verstring = check_output([honeytail_cmd, "--version"], stderr=subprocess.STDOUT)
 
             verstring = re.sub(r'Honeytail version', '', verstring).strip()
             if verstring == "dev":

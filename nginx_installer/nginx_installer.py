@@ -12,7 +12,7 @@ import sys
 
 sys.path.append(os.path.abspath(os.path.join(os.path.basename(__file__), "..")))
 
-from honey_installer import (HoneyInstaller, get_version)
+from honey_installer import (HoneyInstaller, get_version, check_output)
 
 INSTALLER_NAME = "nginx"
 INSTALLER_VERSION = get_version() + "-" + platform.system().lower()
@@ -326,10 +326,16 @@ hit Enter to continue, 'n' to abort""", default=True):
 
     def _get_nginx_version(self):
         '''calls out to nginx -v to get the nginx version number (eg 1.4.2)'''
-        verstring = subprocess.check_output(["nginx", "-v"], stderr=subprocess.STDOUT)
-        version = verstring.split()[2]
-        vernum = version.split("/")[1]
-        return vernum
+        try:
+            verstring = check_output(["nginx", "-v"], stderr=subprocess.STDOUT)
+            version = verstring.split()[2]
+            vernum = version.split("/")[1]
+            return vernum
+        except subprocess.CalledProcessError as e:
+            self.warn("error checking nginx version (`{}`), exit status {}".format(e.cmd, e.returncode))
+            self.warn("output:")
+            self.warn(e.output)
+            return None
 
 @click.command()
 @click.option("--writekey", "-k", help="Your Honeycomb Writekey", default="")
