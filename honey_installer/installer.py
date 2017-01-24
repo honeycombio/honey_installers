@@ -44,13 +44,13 @@ def replace_subprocess_env(**kwargs):
         env = kwargs[env]
     if env is None:
         env = os.environ
-
     env = {k:v for k,v in os.environ.iteritems() if k != 'LD_LIBRARY_PATH' and k != 'DYLD_LIBRARY_PATH'}
     kwargs['env'] = env
+    return kwargs
 
 def Popen(args, **kwargs):
     try:
-        replace_subprocess_env(**kwargs)
+        kwargs = replace_subprocess_env(**kwargs)
         p = subprocess.Popen(args, **kwargs)
     except OSError as e:
         click.echo("Failed to run {}: {}".format(args, e))
@@ -58,7 +58,7 @@ def Popen(args, **kwargs):
     return p
 
 def check_output(args, **kwargs):
-    replace_subprocess_env(**kwargs)
+    kwargs = replace_subprocess_env(**kwargs)
     return subprocess.check_output(args, **kwargs)
 
 def get_choice(choices, prompt):
