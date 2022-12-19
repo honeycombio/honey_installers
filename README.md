@@ -1,8 +1,8 @@
 # Honeycomb Installers
 
-[![OSS Lifecycle](https://img.shields.io/osslifecycle/honeycombio/honey_installers?color=pink)](https://github.com/honeycombio/home/blob/main/honeycomb-oss-lifecycle-and-practices.md)
+[![OSS Lifecycle](https://img.shields.io/osslifecycle/honeycombio/honey_installers)](https://github.com/honeycombio/home/blob/main/honeycomb-oss-lifecycle-and-practices.md)
 
-STATUS: this project is being sunset. See https://github.com/honeycombio/honey_installers/issues/8
+**STATUS: this project is [archived](https://github.com/honeycombio/home/blob/main/honeycomb-oss-lifecycle-and-practices.md).**
 
 [![Build Status](https://travis-ci.org/honeycombio/honey_installers.svg?branch=master)](https://travis-ci.org/honeycombio/honey_installers)
 
